@@ -7,28 +7,64 @@ const FuelMoistureCalculator = require('../fuel-moisture-calculator.js');
 
 console.log('=== Fuel Moisture Calculator - Node.js Example ===\n');
 
-// Example 1: Calculate fine fuel moisture
-console.log('Example 1: Fine Fuel Moisture');
-const fineMoisture = FuelMoistureCalculator.calculateFineFuelMoisture(75, 50);
+// Example 1: Compute Equilibrium Moisture Content (EMC)
+console.log('Example 1: Compute EMC');
+const emc1 = FuelMoistureCalculator.computeEMC(75, 50);
 console.log(`  Temperature: 75°F, Humidity: 50%`);
-console.log(`  Fine Fuel Moisture: ${fineMoisture.toFixed(2)}%\n`);
+console.log(`  EMC: ${emc1}%\n`);
 
-// Example 2: Calculate all fuel moisture classes
-console.log('Example 2: All Fuel Moisture Classes');
-const allMoistures = FuelMoistureCalculator.calculateAllFuelMoistures({
-    temperature: 85,
-    relativeHumidity: 30,
-    shading: 0.5
+// Example 2: Time-lag drying model
+console.log('Example 2: Time-Lag Drying Model');
+const initial = 12;
+const emc = 8;
+const hours = 12;
+const timeLag10 = 10;
+
+const newMoisture = FuelMoistureCalculator.stepMoisture(initial, emc, hours, timeLag10);
+console.log(`  Initial moisture: ${initial}%`);
+console.log(`  EMC: ${emc}%`);
+console.log(`  Time period: ${hours} hours`);
+console.log(`  Time lag: ${timeLag10} hours`);
+console.log(`  New moisture: ${newMoisture}%\n`);
+
+// Example 3: Run multi-day forecast model
+console.log('Example 3: Multi-Day Forecast Model');
+const forecast = [
+  { temp: 75, rh: 50, hours: 12 },
+  { temp: 80, rh: 40, hours: 12 },
+  { temp: 85, rh: 30, hours: 12 },
+  { temp: 90, rh: 25, hours: 12 }
+];
+
+const results = FuelMoistureCalculator.runModel(10, 12, forecast);
+
+console.log(`  Initial conditions: 1-hr: ${results.initial1hr}%, 10-hr: ${results.initial10hr}%`);
+console.log('  Daily Results:');
+results.dailyResults.forEach(day => {
+  console.log(`    ${day.day}: Temp ${day.temp}°F, RH ${day.rh}% → 1-hr: ${day.moisture1Hr}%, 10-hr: ${day.moisture10Hr}%`);
 });
 
-console.log(`  Temperature: 85°F, Humidity: 30%, Shading: 0.5`);
-console.log(`  1-Hour:    ${allMoistures.oneHour.toFixed(2)}%`);
-console.log(`  10-Hour:   ${allMoistures.tenHour.toFixed(2)}%`);
-console.log(`  100-Hour:  ${allMoistures.hundredHour.toFixed(2)}%`);
-console.log(`  1000-Hour: ${allMoistures.thousandHour.toFixed(2)}%\n`);
+if (results.summary.firstCritical1HrDay) {
+  console.log(`  ⚠️  Critical drying (≤6%) first detected on: ${results.summary.firstCritical1HrDay}\n`);
+} else {
+  console.log(`  No critical drying detected\n`);
+}
 
-// Example 3: Temperature conversion
-console.log('Example 3: Temperature Conversion');
+// Example 4: Custom day labels
+console.log('Example 4: Forecast with Custom Labels');
+const weekForecast = [
+  { label: 'Monday', temp: 70, rh: 60, wind: 5, hours: 12 },
+  { label: 'Tuesday', temp: 75, rh: 50, wind: 10, hours: 12 },
+  { label: 'Wednesday', temp: 80, rh: 40, wind: 15, hours: 12 }
+];
+
+const weekResults = FuelMoistureCalculator.runModel(8, 10, weekForecast);
+weekResults.dailyResults.forEach(day => {
+  console.log(`  ${day.day}: ${day.moisture1Hr}% (1-hr), ${day.moisture10Hr}% (10-hr), Wind: ${day.wind} mph`);
+});
+
+// Example 5: Temperature conversion
+console.log('\nExample 5: Temperature Conversion');
 const celsius = 25;
 const fahrenheit = FuelMoistureCalculator.celsiusToFahrenheit(celsius);
 console.log(`  ${celsius}°C = ${fahrenheit.toFixed(1)}°F`);
@@ -37,33 +73,5 @@ const f = 77;
 const c = FuelMoistureCalculator.fahrenheitToCelsius(f);
 console.log(`  ${f}°F = ${c.toFixed(1)}°C\n`);
 
-// Example 4: With previous moisture values for lag calculation
-console.log('Example 4: Moisture with Lag Calculation');
-const currentConditions = { temperature: 70, relativeHumidity: 60 };
-const previousMoisture = { hundredHour: 12, thousandHour: 15 };
+console.log('=== Examples Complete ===');
 
-const lagged = FuelMoistureCalculator.calculateAllFuelMoistures(
-    currentConditions,
-    previousMoisture
-);
-
-console.log(`  Current: 70°F, 60% RH`);
-console.log(`  Previous 100-hour: 12%, Current: ${lagged.hundredHour.toFixed(2)}%`);
-console.log(`  Previous 1000-hour: 15%, Current: ${lagged.thousandHour.toFixed(2)}%`);
-console.log(`  (Notice how values lag toward previous readings)\n`);
-
-// Example 5: Error handling
-console.log('Example 5: Error Handling');
-try {
-    FuelMoistureCalculator.calculateFineFuelMoisture(75, 150);
-} catch (error) {
-    console.log(`  Caught error: ${error.message}`);
-}
-
-try {
-    FuelMoistureCalculator.calculateFineFuelMoisture('invalid', 50);
-} catch (error) {
-    console.log(`  Caught error: ${error.message}`);
-}
-
-console.log('\n=== Examples Complete ===');

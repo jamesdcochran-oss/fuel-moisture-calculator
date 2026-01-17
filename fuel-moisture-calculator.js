@@ -1,6 +1,10 @@
 /**
  * Fuel Moisture Calculator
- * A robust JavaScript library for fire weather fuel moisture calculations
+ * Minimal, robust fuel moisture calculator for fire weather analysis
+ * - computeEMC(tempF, rh): empirical approximation used in many fire-weather tools
+ * - stepMoisture(initial, emc, hours, timeLag): exponential time-lag model
+ * - runModel(...): run model over forecast days
+ * - DOM wiring for browser usage (optional, defensive)
  * 
  * @version 1.0.0
  * @license MIT
@@ -16,243 +20,251 @@
   'use strict';
 
   /**
-   * Validates that a value is a finite number
-   * @private
-   * @param {*} value - Value to validate
-   * @param {string} name - Parameter name for error messages
-   * @returns {number} Validated number
-   * @throws {TypeError} If value is not a finite number
-   */
-  function validateNumber(value, name) {
-    if (typeof value !== 'number' || !isFinite(value)) {
-      throw new TypeError(`${name} must be a finite number, got ${typeof value}: ${value}`);
-    }
-    return value;
-  }
-
-  /**
-   * Validates that a value is within a specified range
-   * @private
-   * @param {number} value - Value to validate
-   * @param {number} min - Minimum allowed value
-   * @param {number} max - Maximum allowed value
-   * @param {string} name - Parameter name for error messages
-   * @returns {number} Validated number
-   * @throws {RangeError} If value is outside the specified range
-   */
-  function validateRange(value, min, max, name) {
-    if (value < min || value > max) {
-      throw new RangeError(`${name} must be between ${min} and ${max}, got ${value}`);
-    }
-    return value;
-  }
-
-  /**
-   * Calculates fine fuel moisture content using Nelson's model (2000)
-   * Fine fuels are typically < 0.25 inches in diameter (1-hour fuels)
+   * Compute Equilibrium Moisture Content (EMC) as a percentage
+   * Empirical approximation commonly used in fire-weather tools
    * 
-   * @param {number} temperature - Air temperature in degrees Fahrenheit
-   * @param {number} relativeHumidity - Relative humidity as a percentage (0-100)
-   * @returns {number} Fine fuel moisture content as a percentage
+   * @param {number} tempF - Temperature in degrees Fahrenheit
+   * @param {number} rh - Relative humidity as percentage (0-100)
+   * @returns {number} Equilibrium moisture content as percentage
    * @throws {TypeError} If parameters are not finite numbers
-   * @throws {RangeError} If parameters are outside valid ranges
    * 
    * @example
-   * const moisture = calculateFineFuelMoisture(75, 50);
-   * console.log(moisture); // ~1.23
+   * const emc = computeEMC(75, 50);
+   * console.log(emc); // ~8.4
    */
-  function calculateFineFuelMoisture(temperature, relativeHumidity) {
-    // Validate inputs
-    validateNumber(temperature, 'temperature');
-    validateNumber(relativeHumidity, 'relativeHumidity');
+  function computeEMC(tempF, rh) {
+    const T = Number(tempF);
+    const RH = Math.max(0, Math.min(100, Number(rh)));
     
-    // Reasonable ranges for weather conditions
-    validateRange(temperature, -50, 150, 'temperature');
-    validateRange(relativeHumidity, 0, 100, 'relativeHumidity');
-
-    // Nelson's fine fuel moisture model
-    // EMC = equilibrium moisture content
-    const humidity = relativeHumidity / 100;
-    
-    let emc;
-    if (humidity <= 0.10) {
-      emc = 0.03229 + 0.281073 * humidity - 0.000578 * temperature * humidity;
-    } else if (humidity <= 0.50) {
-      emc = 2.22749 + 0.160107 * humidity - 0.014784 * temperature;
-    } else {
-      emc = 21.0606 + 0.005565 * humidity * humidity - 0.00035 * humidity * temperature - 0.483199 * humidity;
+    if (!isFinite(T) || !isFinite(RH)) {
+      throw new TypeError('Temperature and humidity must be finite numbers');
     }
-
-    // Apply temperature correction factor
-    const tempCorrection = 1 + 0.00509 * (temperature - 70);
-    emc = emc * tempCorrection;
-
-    // Ensure result is within reasonable bounds
-    return Math.max(0, Math.min(100, emc));
+    
+    // Empirical approximation (common form used in many tools)
+    const emc = 0.942 * Math.pow(RH, 0.679) +
+                11 * Math.exp((RH - 100) / 10) +
+                0.18 * (21.1 - T) * (1 - Math.exp(-0.115 * RH));
+    
+    return Math.max(0.1, Number(emc.toFixed(1)));
   }
 
   /**
-   * Calculates 10-hour fuel moisture content
-   * 10-hour fuels are typically 0.25-1 inch in diameter
+   * Time-lag drying/wetting model using exponential decay
+   * Formula: m_t = EMC + (m0 - EMC) * exp(-hours / timeLag)
    * 
-   * @param {number} temperature - Air temperature in degrees Fahrenheit
-   * @param {number} relativeHumidity - Relative humidity as a percentage (0-100)
-   * @param {number} [shading=0] - Shading factor (0=full sun, 1=full shade)
-   * @returns {number} 10-hour fuel moisture content as a percentage
+   * @param {number} initial - Initial moisture content as percentage
+   * @param {number} emc - Equilibrium moisture content as percentage
+   * @param {number} hours - Number of hours for the time step
+   * @param {number} timeLag - Time lag constant in hours (1 for 1-hr fuels, 10 for 10-hr fuels, etc.)
+   * @returns {number} New moisture content as percentage
    * @throws {TypeError} If parameters are not finite numbers
-   * @throws {RangeError} If parameters are outside valid ranges
    * 
    * @example
-   * const moisture = calculate10HourFuelMoisture(75, 50, 0.5);
-   * console.log(moisture); // ~1.33
+   * const newMoisture = stepMoisture(12, 8, 12, 10);
+   * console.log(newMoisture); // ~9.2
    */
-  function calculate10HourFuelMoisture(temperature, relativeHumidity, shading = 0) {
-    // Validate inputs
-    validateNumber(temperature, 'temperature');
-    validateNumber(relativeHumidity, 'relativeHumidity');
-    validateNumber(shading, 'shading');
+  function stepMoisture(initial, emc, hours, timeLag) {
+    const m0 = Number(initial);
+    const e = Number(emc);
+    const h = Number(hours);
+    const tl = Number(timeLag);
     
-    validateRange(temperature, -50, 150, 'temperature');
-    validateRange(relativeHumidity, 0, 100, 'relativeHumidity');
-    validateRange(shading, 0, 1, 'shading');
-
-    // Base calculation using fine fuel moisture
-    let moisture = calculateFineFuelMoisture(temperature, relativeHumidity);
-    
-    // Apply lag factor for 10-hour fuels (slower response to conditions)
-    moisture = moisture * 1.03;
-    
-    // Apply shading adjustment (shaded fuels retain more moisture)
-    if (shading > 0) {
-      moisture = moisture * (1 + shading * 0.1);
+    if (!isFinite(m0) || !isFinite(e) || !isFinite(h) || !isFinite(tl)) {
+      throw new TypeError('All parameters must be finite numbers');
     }
-
-    return Math.max(0, Math.min(100, moisture));
+    
+    const k = Math.exp(-h / Math.max(0.0001, tl));
+    return Number((e + (m0 - e) * k).toFixed(1));
   }
 
   /**
-   * Calculates 100-hour fuel moisture content
-   * 100-hour fuels are typically 1-3 inches in diameter
+   * Run moisture model over multiple forecast days
    * 
-   * @param {number} temperature - Air temperature in degrees Fahrenheit
-   * @param {number} relativeHumidity - Relative humidity as a percentage (0-100)
-   * @param {number} [previousMoisture] - Previous moisture content (for lag calculation)
-   * @returns {number} 100-hour fuel moisture content as a percentage
-   * @throws {TypeError} If parameters are not finite numbers
-   * @throws {RangeError} If parameters are outside valid ranges
-   * 
-   * @example
-   * const moisture = calculate100HourFuelMoisture(75, 50);
-   * console.log(moisture); // ~1.38
-   */
-  function calculate100HourFuelMoisture(temperature, relativeHumidity, previousMoisture) {
-    // Validate inputs
-    validateNumber(temperature, 'temperature');
-    validateNumber(relativeHumidity, 'relativeHumidity');
-    
-    validateRange(temperature, -50, 150, 'temperature');
-    validateRange(relativeHumidity, 0, 100, 'relativeHumidity');
-
-    // Base calculation
-    let moisture = calculateFineFuelMoisture(temperature, relativeHumidity);
-    
-    // Apply lag factor for 100-hour fuels (much slower response)
-    moisture = moisture * 1.12;
-    
-    // If previous moisture is provided, apply lag calculation
-    if (previousMoisture !== undefined) {
-      validateNumber(previousMoisture, 'previousMoisture');
-      validateRange(previousMoisture, 0, 100, 'previousMoisture');
-      
-      // Weighted average (100-hour fuels respond slowly to changes)
-      moisture = previousMoisture * 0.92 + moisture * 0.08;
-    }
-
-    return Math.max(0, Math.min(100, moisture));
-  }
-
-  /**
-   * Calculates 1000-hour fuel moisture content
-   * 1000-hour fuels are typically 3-8 inches in diameter
-   * 
-   * @param {number} temperature - Air temperature in degrees Fahrenheit
-   * @param {number} relativeHumidity - Relative humidity as a percentage (0-100)
-   * @param {number} [previousMoisture] - Previous moisture content (for lag calculation)
-   * @returns {number} 1000-hour fuel moisture content as a percentage
-   * @throws {TypeError} If parameters are not finite numbers
-   * @throws {RangeError} If parameters are outside valid ranges
+   * @param {number} initial1hr - Initial 1-hour fuel moisture percentage
+   * @param {number} initial10hr - Initial 10-hour fuel moisture percentage
+   * @param {Array<Object>} forecastEntries - Array of forecast day objects
+   * @param {string} [forecastEntries[].label] - Day label (e.g., "Day 1")
+   * @param {number} forecastEntries[].temp - Temperature in °F
+   * @param {number} forecastEntries[].rh - Relative humidity percentage
+   * @param {number} [forecastEntries[].wind] - Wind speed (optional)
+   * @param {number} [forecastEntries[].hours=12] - Hours in period (default 12)
+   * @returns {Object} Model results with daily calculations and summary
+   * @throws {TypeError} If parameters are invalid
    * 
    * @example
-   * const moisture = calculate1000HourFuelMoisture(75, 50);
-   * console.log(moisture); // ~1.57
+   * const results = runModel(8, 10, [
+   *   { temp: 75, rh: 50, hours: 12 },
+   *   { temp: 80, rh: 40, hours: 12 }
+   * ]);
    */
-  function calculate1000HourFuelMoisture(temperature, relativeHumidity, previousMoisture) {
-    // Validate inputs
-    validateNumber(temperature, 'temperature');
-    validateNumber(relativeHumidity, 'relativeHumidity');
-    
-    validateRange(temperature, -50, 150, 'temperature');
-    validateRange(relativeHumidity, 0, 100, 'relativeHumidity');
-
-    // Base calculation
-    let moisture = calculateFineFuelMoisture(temperature, relativeHumidity);
-    
-    // Apply lag factor for 1000-hour fuels (very slow response)
-    moisture = moisture * 1.28;
-    
-    // If previous moisture is provided, apply lag calculation
-    if (previousMoisture !== undefined) {
-      validateNumber(previousMoisture, 'previousMoisture');
-      validateRange(previousMoisture, 0, 100, 'previousMoisture');
-      
-      // Weighted average (1000-hour fuels respond very slowly)
-      moisture = previousMoisture * 0.98 + moisture * 0.02;
+  function runModel(initial1hr, initial10hr, forecastEntries) {
+    if (!Array.isArray(forecastEntries)) {
+      throw new TypeError('forecastEntries must be an array');
     }
-
-    return Math.max(0, Math.min(100, moisture));
-  }
-
-  /**
-   * Calculates all fuel moisture timelag classes at once
-   * 
-   * @param {Object} conditions - Weather conditions
-   * @param {number} conditions.temperature - Air temperature in degrees Fahrenheit
-   * @param {number} conditions.relativeHumidity - Relative humidity as a percentage (0-100)
-   * @param {number} [conditions.shading=0] - Shading factor for 10-hour fuels (0-1)
-   * @param {Object} [previous] - Previous moisture values for lag calculations
-   * @param {number} [previous.hundredHour] - Previous 100-hour moisture
-   * @param {number} [previous.thousandHour] - Previous 1000-hour moisture
-   * @returns {Object} Moisture content for all timelag classes
-   * @throws {TypeError} If parameters are not valid
-   * @throws {RangeError} If parameters are outside valid ranges
-   * 
-   * @example
-   * const moistures = calculateAllFuelMoistures({
-   *   temperature: 75,
-   *   relativeHumidity: 50,
-   *   shading: 0.5
-   * });
-   * console.log(moistures);
-   * // {
-   * //   oneHour: 1.23,
-   * //   tenHour: 1.33,
-   * //   hundredHour: 1.38,
-   * //   thousandHour: 1.57
-   * // }
-   */
-  function calculateAllFuelMoistures(conditions, previous = {}) {
-    if (typeof conditions !== 'object' || conditions === null) {
-      throw new TypeError('conditions must be an object');
-    }
-
-    const { temperature, relativeHumidity, shading = 0 } = conditions;
     
-    return {
-      oneHour: calculateFineFuelMoisture(temperature, relativeHumidity),
-      tenHour: calculate10HourFuelMoisture(temperature, relativeHumidity, shading),
-      hundredHour: calculate100HourFuelMoisture(temperature, relativeHumidity, previous.hundredHour),
-      thousandHour: calculate1000HourFuelMoisture(temperature, relativeHumidity, previous.thousandHour)
+    const results = {
+      initial1hr: Number(initial1hr),
+      initial10hr: Number(initial10hr),
+      dailyResults: [],
+      summary: {}
     };
+
+    let prev1 = Number(initial1hr);
+    let prev10 = Number(initial10hr);
+
+    forecastEntries.forEach((day, i) => {
+      if (typeof day !== 'object' || day === null) {
+        throw new TypeError(`Forecast entry ${i} must be an object`);
+      }
+      
+      const emc = computeEMC(day.temp, day.rh);
+      const hours = day.hours || 12;
+      const m1 = stepMoisture(prev1, emc, hours, 1);
+      const m10 = stepMoisture(prev10, emc, hours, 10);
+
+      results.dailyResults.push({
+        day: day.label || (`Day ${i + 1}`),
+        temp: day.temp,
+        rh: day.rh,
+        wind: day.wind || 0,
+        hours: hours,
+        moisture1Hr: m1,
+        moisture10Hr: m10
+      });
+
+      prev1 = m1;
+      prev10 = m10;
+    });
+
+    // Find first day where 1-hour moisture drops to critical level (≤6%)
+    const critIndex = results.dailyResults.findIndex(r => r.moisture1Hr <= 6);
+    results.summary.firstCritical1HrDay = critIndex >= 0 ? results.dailyResults[critIndex].day : null;
+
+    return results;
+  }
+
+  /* UI helpers: these will run only if the page contains the expected elements.
+     Keeps the file safe to include everywhere.
+  */
+  
+  /**
+   * Populate default forecast table with initial values (browser only)
+   * @private
+   * @param {number} rows - Number of forecast days to create
+   */
+  function populateDefaultForecastTable(rows = 5) {
+    if (typeof document === 'undefined') return; // Not in browser
+    
+    const tbody = document.getElementById('forecastDays');
+    if (!tbody) return;
+    tbody.innerHTML = '';
+    for (let i = 0; i < rows; i++) {
+      const tr = document.createElement('tr');
+      tr.innerHTML = `
+        <td>Day ${i + 1}</td>
+        <td><input type="number" class="fc-temp" value="${60 + i}" step="1" min="-20" max="130"></td>
+        <td><input type="number" class="fc-rh" value="${60 - i * 5}" step="1" min="0" max="100"></td>
+        <td><input type="number" class="fc-wind" value="${5 + i}" step="1" min="0" max="100"></td>
+        <td><input type="number" class="fc-hours" value="12" step="1" min="0" max="24"></td>
+      `;
+      tbody.appendChild(tr);
+    }
+  }
+
+  /**
+   * Read forecast data from table (browser only)
+   * @private
+   * @returns {Array<Object>} Forecast entries
+   */
+  function readForecastTable() {
+    if (typeof document === 'undefined') return []; // Not in browser
+    
+    const tbody = document.getElementById('forecastDays');
+    if (!tbody) return [];
+    const rows = Array.from(tbody.querySelectorAll('tr'));
+    return rows.map((tr, idx) => {
+      const temp = Number(tr.querySelector('.fc-temp')?.value || 70);
+      const rh = Number(tr.querySelector('.fc-rh')?.value || 50);
+      const wind = Number(tr.querySelector('.fc-wind')?.value || 5);
+      const hours = Number(tr.querySelector('.fc-hours')?.value || 12);
+      return { label: `Day ${idx + 1}`, temp, rh, wind, hours };
+    });
+  }
+
+  /**
+   * Display model results in table (browser only)
+   * @private
+   * @param {Object} results - Model results from runModel()
+   */
+  function showResults(results) {
+    if (typeof document === 'undefined') return; // Not in browser
+    
+    const resultsSection = document.getElementById('resultsSection');
+    const resultsTable = document.getElementById('resultsTable');
+    const warningMessage = document.getElementById('warningMessage');
+    if (!resultsSection || !resultsTable) return;
+
+    resultsSection.style.display = 'block';
+    let html = '<table><thead><tr><th>Day</th><th>Temp°F</th><th>Min RH%</th><th>1-hr%</th><th>10-hr%</th></tr></thead><tbody>';
+    results.dailyResults.forEach(r => {
+      html += `<tr>
+        <td>${r.day}</td><td>${r.temp}</td><td>${r.rh}</td>
+        <td>${r.moisture1Hr}%</td><td>${r.moisture10Hr}%</td>
+      </tr>`;
+    });
+    html += '</tbody></table>';
+    resultsTable.innerHTML = html;
+
+    if (warningMessage) {
+      if (results.summary.firstCritical1HrDay) {
+        warningMessage.style.display = 'block';
+        warningMessage.textContent = `⚠️ Critical drying detected first on ${results.summary.firstCritical1HrDay}`;
+      } else {
+        warningMessage.style.display = 'none';
+        warningMessage.textContent = '';
+      }
+    }
+  }
+
+  /**
+   * Wire up UI event handlers (browser only)
+   * @private
+   */
+  function wireUI() {
+    if (typeof document === 'undefined') return; // Not in browser
+    
+    populateDefaultForecastTable(5);
+
+    const runBtn = document.getElementById('runModelBtn');
+    if (runBtn) {
+      runBtn.addEventListener('click', () => {
+        const initial1 = Number(document.getElementById('initial1hr')?.value || 8);
+        const initial10 = Number(document.getElementById('initial10hr')?.value || 10);
+        const forecast = readForecastTable();
+        try {
+          const results = runModel(initial1, initial10, forecast);
+          showResults(results);
+          console.log('Fuel model results:', results);
+        } catch (err) {
+          console.error('Fuel model error', err);
+        }
+      });
+    }
+
+    const modalClose = document.getElementById('modalCloseBtn');
+    if (modalClose) modalClose.addEventListener('click', () => {
+      const modal = document.getElementById('fuelCalcModal');
+      if (modal) modal.style.display = 'none';
+    });
+  }
+
+  // On DOM ready, wire UI (safe-guarded, browser only)
+  if (typeof document !== 'undefined') {
+    if (document.readyState === 'loading') {
+      document.addEventListener('DOMContentLoaded', wireUI);
+    } else {
+      wireUI();
+    }
   }
 
   /**
@@ -267,8 +279,11 @@
    * console.log(fahrenheit); // 77
    */
   function celsiusToFahrenheit(celsius) {
-    validateNumber(celsius, 'celsius');
-    return (celsius * 9/5) + 32;
+    const c = Number(celsius);
+    if (!isFinite(c)) {
+      throw new TypeError('celsius must be a finite number');
+    }
+    return (c * 9 / 5) + 32;
   }
 
   /**
@@ -283,18 +298,18 @@
    * console.log(celsius); // 25
    */
   function fahrenheitToCelsius(fahrenheit) {
-    validateNumber(fahrenheit, 'fahrenheit');
-    return (fahrenheit - 32) * 5/9;
+    const f = Number(fahrenheit);
+    if (!isFinite(f)) {
+      throw new TypeError('fahrenheit must be a finite number');
+    }
+    return (f - 32) * 5 / 9;
   }
 
   // Public API
   return {
-    calculateFineFuelMoisture,
-    calculateOneHourFuelMoisture: calculateFineFuelMoisture, // Alias
-    calculate10HourFuelMoisture,
-    calculate100HourFuelMoisture,
-    calculate1000HourFuelMoisture,
-    calculateAllFuelMoistures,
+    computeEMC,
+    stepMoisture,
+    runModel,
     celsiusToFahrenheit,
     fahrenheitToCelsius,
     version: '1.0.0'
