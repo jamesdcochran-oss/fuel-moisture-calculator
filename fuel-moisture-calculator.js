@@ -310,6 +310,10 @@
     computeEMC,
     stepMoisture,
     runModel,
+    populateDefaultForecastTable,
+    readForecastTable,
+    showResults,
+    wireUI,
     celsiusToFahrenheit,
     fahrenheitToCelsius,
     version: '1.0.0'

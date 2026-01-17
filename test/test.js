@@ -248,6 +248,29 @@ console.log('\n--- Version Test ---');
 assert(typeof FuelMoistureCalculator.version === 'string', 'Should have version property');
 assert(FuelMoistureCalculator.version.length > 0, 'Version should not be empty');
 
+// Test 11: UI Helpers Exposure
+console.log('\n--- UI Helpers Exposure Tests ---');
+assert(typeof FuelMoistureCalculator.wireUI === 'function', 'Should expose wireUI function');
+assert(typeof FuelMoistureCalculator.populateDefaultForecastTable === 'function', 'Should expose populateDefaultForecastTable function');
+assert(typeof FuelMoistureCalculator.readForecastTable === 'function', 'Should expose readForecastTable function');
+assert(typeof FuelMoistureCalculator.showResults === 'function', 'Should expose showResults function');
+
+// Test that UI helpers don't crash in Node.js (they should gracefully return when document is undefined)
+FuelMoistureCalculator.wireUI();
+assert(true, 'wireUI should run without error in Node.js environment');
+
+FuelMoistureCalculator.populateDefaultForecastTable(5);
+assert(true, 'populateDefaultForecastTable should run without error in Node.js environment');
+
+const forecastData = FuelMoistureCalculator.readForecastTable();
+assert(Array.isArray(forecastData), 'readForecastTable should return an array even in Node.js environment');
+
+const testResults = FuelMoistureCalculator.runModel(10, 12, [
+  { temp: 75, rh: 50, hours: 12 }
+]);
+FuelMoistureCalculator.showResults(testResults);
+assert(true, 'showResults should run without error in Node.js environment');
+
 // Summary
 console.log('\n=== Test Summary ===');
 console.log(`Total tests: ${testCount}`);
