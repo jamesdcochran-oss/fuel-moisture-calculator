@@ -149,6 +149,7 @@
   
   /**
    * Populate default forecast table with initial values (browser only)
+   * @private
    * @param {number} rows - Number of forecast days to create
    */
   function populateDefaultForecastTable(rows = 5) {
@@ -172,6 +173,7 @@
 
   /**
    * Read forecast data from table (browser only)
+   * @private
    * @returns {Array<Object>} Forecast entries
    */
   function readForecastTable() {
@@ -191,6 +193,7 @@
 
   /**
    * Display model results in table (browser only)
+   * @private
    * @param {Object} results - Model results from runModel()
    */
   function showResults(results) {
@@ -225,6 +228,7 @@
 
   /**
    * Wire up UI event handlers (browser only)
+   * @private
    */
   function wireUI() {
     if (typeof document === 'undefined') return; // Not in browser
@@ -308,10 +312,6 @@
     runModel,
     celsiusToFahrenheit,
     fahrenheitToCelsius,
-    populateDefaultForecastTable,
-    readForecastTable,
-    showResults,
-    wireUI,
     version: '1.0.0'
   };
 }));

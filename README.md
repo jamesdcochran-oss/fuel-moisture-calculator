@@ -4,10 +4,6 @@ A robust, standalone JavaScript library for calculating fuel moisture content us
 
 ![Test Suite](https://github.com/user-attachments/assets/a34342e5-fb13-4195-b9fb-07f22fe64136)
 
-## 🔥 Live Demo
-
-**[Try the interactive calculator →](https://jamesdcochran-oss.github.io/fuel-moisture-calculator/)**
-
 ## Features
 
 - **Robust Input Handling**: Defensive programming with proper validation to handle invalid inputs, NaN values, and preserve valid zeros
@@ -153,27 +149,6 @@ const f = FuelMoistureCalculator.celsiusToFahrenheit(25); // 77
 // Fahrenheit to Celsius
 const c = FuelMoistureCalculator.fahrenheitToCelsius(77); // 25
 ```
-
-### Browser UI Helpers
-
-For interactive web applications, the library provides optional DOM helper functions:
-
-```javascript
-// Wire up event handlers for calculator UI
-FuelMoistureCalculator.wireUI();
-
-// Populate a forecast table with default values
-FuelMoistureCalculator.populateDefaultForecastTable(5); // 5 days
-
-// Read forecast data from the table
-const forecast = FuelMoistureCalculator.readForecastTable();
-
-// Display results in the UI
-const results = FuelMoistureCalculator.runModel(8, 10, forecast);
-FuelMoistureCalculator.showResults(results);
-```
-
-These functions are designed to work with HTML elements with specific IDs. See [index.html](index.html) for a complete example.
 
 ## Critical Moisture Thresholds
 
