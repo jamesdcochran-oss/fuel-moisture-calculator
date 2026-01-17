@@ -59,7 +59,7 @@
    * 
    * @example
    * const moisture = calculateFineFuelMoisture(75, 50);
-   * console.log(moisture); // ~8.9
+   * console.log(moisture); // ~1.23
    */
   function calculateFineFuelMoisture(temperature, relativeHumidity) {
     // Validate inputs
@@ -104,7 +104,7 @@
    * 
    * @example
    * const moisture = calculate10HourFuelMoisture(75, 50, 0.5);
-   * console.log(moisture); // ~9.2
+   * console.log(moisture); // ~1.33
    */
   function calculate10HourFuelMoisture(temperature, relativeHumidity, shading = 0) {
     // Validate inputs
@@ -143,7 +143,7 @@
    * 
    * @example
    * const moisture = calculate100HourFuelMoisture(75, 50);
-   * console.log(moisture); // ~10.1
+   * console.log(moisture); // ~1.38
    */
   function calculate100HourFuelMoisture(temperature, relativeHumidity, previousMoisture) {
     // Validate inputs
@@ -184,7 +184,7 @@
    * 
    * @example
    * const moisture = calculate1000HourFuelMoisture(75, 50);
-   * console.log(moisture); // ~11.5
+   * console.log(moisture); // ~1.57
    */
   function calculate1000HourFuelMoisture(temperature, relativeHumidity, previousMoisture) {
     // Validate inputs
@@ -234,10 +234,10 @@
    * });
    * console.log(moistures);
    * // {
-   * //   oneHour: 8.9,
-   * //   tenHour: 9.2,
-   * //   hundredHour: 10.1,
-   * //   thousandHour: 11.5
+   * //   oneHour: 1.23,
+   * //   tenHour: 1.33,
+   * //   hundredHour: 1.38,
+   * //   thousandHour: 1.57
    * // }
    */
   function calculateAllFuelMoistures(conditions, previous = {}) {

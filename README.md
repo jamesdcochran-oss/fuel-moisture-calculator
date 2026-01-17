@@ -73,10 +73,10 @@ const allMoistures = FuelMoistureCalculator.calculateAllFuelMoistures({
 
 console.log(allMoistures);
 // {
-//   oneHour: 8.9,
-//   tenHour: 9.2,
-//   hundredHour: 10.1,
-//   thousandHour: 11.5
+//   oneHour: 1.23,
+//   tenHour: 1.33,
+//   hundredHour: 1.38,
+//   thousandHour: 1.57
 // }
 ```
 
@@ -114,7 +114,7 @@ Calculate fine fuel moisture content (1-hour timelag fuels < 0.25" diameter).
 **Example:**
 ```javascript
 const moisture = FuelMoistureCalculator.calculateFineFuelMoisture(75, 50);
-// Returns: ~8.9
+// Returns: ~1.23
 ```
 
 ### calculate10HourFuelMoisture(temperature, relativeHumidity, shading)
@@ -131,7 +131,7 @@ Calculate 10-hour fuel moisture content (0.25-1" diameter).
 **Example:**
 ```javascript
 const moisture = FuelMoistureCalculator.calculate10HourFuelMoisture(75, 50, 0.5);
-// Returns: ~9.2
+// Returns: ~1.33
 ```
 
 ### calculate100HourFuelMoisture(temperature, relativeHumidity, previousMoisture)
@@ -148,7 +148,7 @@ Calculate 100-hour fuel moisture content (1-3" diameter).
 **Example:**
 ```javascript
 const moisture = FuelMoistureCalculator.calculate100HourFuelMoisture(75, 50, 12);
-// Returns: ~10.1 (weighted toward previous value)
+// Returns: ~12.11 (weighted toward previous value)
 ```
 
 ### calculate1000HourFuelMoisture(temperature, relativeHumidity, previousMoisture)
@@ -165,7 +165,7 @@ Calculate 1000-hour fuel moisture content (3-8" diameter).
 **Example:**
 ```javascript
 const moisture = FuelMoistureCalculator.calculate1000HourFuelMoisture(75, 50, 15);
-// Returns: ~11.5 (strongly weighted toward previous value)
+// Returns: ~15.03 (strongly weighted toward previous value)
 ```
 
 ### calculateAllFuelMoistures(conditions, previous)
