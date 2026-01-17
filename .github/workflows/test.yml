@@ -1,0 +1,62 @@
+name: Test
+
+on:
+  push:
+    branches: [ main, develop ]
+  pull_request:
+    branches: [ main ]
+
+permissions:
+  contents: read
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    
+    strategy:
+      matrix:
+        node-version: [14.x, 16.x, 18.x, 20.x]
+    
+    steps:
+    - uses: actions/checkout@v3
+    
+    - name: Use Node.js ${{ matrix.node-version }}
+      uses: actions/setup-node@v3
+      with:
+        node-version: ${{ matrix.node-version }}
+    
+    - name: Run test suite
+      run: npm test
+    
+    - name: Test Node.js example
+      run: node examples/node-example.js
+    
+    - name: Verify library loads without errors
+      run: node -e "const fs=require('fs'); eval(fs.readFileSync('fuel-moisture-calculator.js','utf8')); console.log('✓ Library loaded successfully');"
+    
+    - name: Test API functions exist
+      run: |
+        node -e "
+          const FMC = require('./fuel-moisture-calculator.js');
+          if (typeof FMC.computeEMC !== 'function') throw new Error('computeEMC not found');
+          if (typeof FMC.stepMoisture !== 'function') throw new Error('stepMoisture not found');
+          if (typeof FMC.runModel !== 'function') throw new Error('runModel not found');
+          console.log('✓ All API functions exist');
+        "
+    
+    - name: Test edge cases
+      run: |
+        node -e "
+          const FMC = require('./fuel-moisture-calculator.js');
+          
+          // Test zero preservation
+          const result = FMC.runModel(0, 0, [{ temp: 70, rh: 40, wind: 0, hours: 0 }]);
+          if (result.initial1hr !== 0) throw new Error('Zero not preserved for 1hr');
+          if (result.initial10hr !== 0) throw new Error('Zero not preserved for 10hr');
+          
+          // Test string inputs are converted
+          const emc = FMC.computeEMC('75', '50');
+          if (!Number.isFinite(emc)) throw new Error('String input not handled');
+          
+          console.log('✓ Edge cases handled correctly');
+        "
