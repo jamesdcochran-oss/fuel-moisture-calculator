@@ -1,0 +1,63 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>UI Helper API Test</title>
+</head>
+<body>
+    <h1>UI Helper API Test</h1>
+    <div id="test-results"></div>
+
+    <script src="../fuel-moisture-calculator.js"></script>
+    <script>
+        const results = [];
+        
+        // Test that window.FuelMoistureCalculator is available
+        if (typeof window.FuelMoistureCalculator !== 'undefined') {
+            results.push('✓ window.FuelMoistureCalculator is available');
+        } else {
+            results.push('✗ window.FuelMoistureCalculator is NOT available');
+        }
+
+        // Test that wireUI is available
+        if (typeof window.FuelMoistureCalculator.wireUI === 'function') {
+            results.push('✓ window.FuelMoistureCalculator.wireUI is a function');
+        } else {
+            results.push('✗ window.FuelMoistureCalculator.wireUI is NOT a function');
+        }
+
+        // Test other UI helpers
+        const uiHelpers = ['populateDefaultForecastTable', 'readForecastTable', 'showResults'];
+        uiHelpers.forEach(helper => {
+            if (typeof window.FuelMoistureCalculator[helper] === 'function') {
+                results.push(`✓ window.FuelMoistureCalculator.${helper} is a function`);
+            } else {
+                results.push(`✗ window.FuelMoistureCalculator.${helper} is NOT a function`);
+            }
+        });
+
+        // Test calculation functions still work
+        const calculationFuncs = ['computeEMC', 'stepMoisture', 'runModel'];
+        calculationFuncs.forEach(func => {
+            if (typeof window.FuelMoistureCalculator[func] === 'function') {
+                results.push(`✓ window.FuelMoistureCalculator.${func} is a function`);
+            } else {
+                results.push(`✗ window.FuelMoistureCalculator.${func} is NOT a function`);
+            }
+        });
+
+        // Display all keys available
+        const keys = Object.keys(window.FuelMoistureCalculator || {});
+        results.push(`\nAvailable keys: ${keys.join(', ')}`);
+
+        // Display results
+        document.getElementById('test-results').innerHTML = '<pre>' + results.join('\n') + '</pre>';
+        
+        // Log to console as well
+        console.log('=== UI Helper API Test Results ===');
+        results.forEach(r => console.log(r));
+        console.log('\nAll keys:', keys);
+    </script>
+</body>
+</html>
