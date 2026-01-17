@@ -243,7 +243,27 @@ assertThrows(
   'Should reject Infinity in fahrenheit conversion'
 );
 
-// Test 10: Version
+// Test 10: UI Helpers Exposure
+console.log('\n--- UI Helpers Exposure Tests ---');
+assert(typeof FuelMoistureCalculator.populateDefaultForecastTable === 'function', 'Should expose populateDefaultForecastTable');
+assert(typeof FuelMoistureCalculator.readForecastTable === 'function', 'Should expose readForecastTable');
+assert(typeof FuelMoistureCalculator.showResults === 'function', 'Should expose showResults');
+assert(typeof FuelMoistureCalculator.wireUI === 'function', 'Should expose wireUI');
+
+// Verify wireUI can be called safely in Node.js (should just return without error)
+try {
+  FuelMoistureCalculator.wireUI();
+  assert(true, 'wireUI should be callable in Node.js environment (safely returns)');
+} catch (err) {
+  assert(false, 'wireUI should not throw in Node.js environment');
+}
+
+// Verify readForecastTable returns empty array in Node.js
+const forecastData = FuelMoistureCalculator.readForecastTable();
+assert(Array.isArray(forecastData), 'readForecastTable should return an array in Node.js');
+assert(forecastData.length === 0, 'readForecastTable should return empty array when no DOM');
+
+// Test 11: Version
 console.log('\n--- Version Test ---');
 assert(typeof FuelMoistureCalculator.version === 'string', 'Should have version property');
 assert(FuelMoistureCalculator.version.length > 0, 'Version should not be empty');
