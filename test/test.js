@@ -248,6 +248,21 @@ console.log('\n--- Version Test ---');
 assert(typeof FuelMoistureCalculator.version === 'string', 'Should have version property');
 assert(FuelMoistureCalculator.version.length > 0, 'Version should not be empty');
 
+// Test 11: UI Helpers API Exposure
+console.log('\n--- UI Helpers API Exposure Tests ---');
+assert(typeof FuelMoistureCalculator.wireUI === 'function', 'wireUI should be exposed as function');
+assert(typeof FuelMoistureCalculator.populateDefaultForecastTable === 'function', 'populateDefaultForecastTable should be exposed as function');
+assert(typeof FuelMoistureCalculator.readForecastTable === 'function', 'readForecastTable should be exposed as function');
+assert(typeof FuelMoistureCalculator.showResults === 'function', 'showResults should be exposed as function');
+
+// Verify UI helpers work in Node.js (should gracefully return/no-op)
+FuelMoistureCalculator.wireUI(); // Should not throw
+assert(true, 'wireUI should execute without error in Node.js environment');
+
+const forecastData = FuelMoistureCalculator.readForecastTable();
+assert(Array.isArray(forecastData), 'readForecastTable should return array in Node.js');
+assert(forecastData.length === 0, 'readForecastTable should return empty array when no document');
+
 // Summary
 console.log('\n=== Test Summary ===');
 console.log(`Total tests: ${testCount}`);
