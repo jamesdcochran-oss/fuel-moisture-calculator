@@ -305,13 +305,21 @@
     return (f - 32) * 5 / 9;
   }
 
-  // Public API
-  return {
+  // ---------- Expose API ----------
+  const API = {
     computeEMC,
     stepMoisture,
     runModel,
+    // UI helpers (browser-only, return early in non-browser environments)
+    populateDefaultForecastTable,
+    readForecastTable,
+    showResults,
+    wireUI,
     celsiusToFahrenheit,
     fahrenheitToCelsius,
     version: '1.0.0'
   };
+
+  // Return API so UMD/AMD/CommonJS consumers and the global receive the helpers
+  return API;
 }));
