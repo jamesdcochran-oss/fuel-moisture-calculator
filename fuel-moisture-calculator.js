@@ -312,7 +312,7 @@
     runModel,
     celsiusToFahrenheit,
     fahrenheitToCelsius,
-    // UI helpers (safe to call if page contains expected elements)
+    // UI helpers (browser-only, safe to call if page contains expected elements)
     populateDefaultForecastTable,
     readForecastTable,
     showResults,

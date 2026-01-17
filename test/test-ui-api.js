@@ -1,5 +1,6 @@
 /**
- * Test to verify UI helpers are exposed from the UMD factory
+ * Test to verify UI helpers are properly exposed from the UMD factory API
+ * and accessible to consumers via require() or window.FuelMoistureCalculator
  */
 
 const FuelMoistureCalculator = require('../fuel-moisture-calculator.js');

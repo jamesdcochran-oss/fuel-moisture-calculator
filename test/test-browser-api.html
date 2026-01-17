@@ -49,7 +49,7 @@
 
         // Display all keys available
         const keys = Object.keys(window.FuelMoistureCalculator || {});
-        results.push(`\nAvailable keys: ${keys.join(', ')}`);
+        results.push('<br>Available keys: ' + keys.join(', '));
 
         // Display results
         document.getElementById('test-results').innerHTML = '<pre>' + results.join('\n') + '</pre>';
