@@ -1,0 +1,43 @@
+{
+  "name": "fuel-moisture-calculator",
+  "version": "1.0.0",
+  "description": "Robust JavaScript library for calculating fuel moisture content using EMC and time-lag models for fire weather forecasting",
+  "main": "fuel-moisture-calculator.js",
+  "scripts": {
+    "test": "node test/test.js",
+    "test:node": "node test/test.js",
+    "test:deno": "deno run --allow-read test/test.js",
+    "test:bun": "bun test/test.js"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/jamesdcochran-oss/fuel-moisture-calculator.git"
+  },
+  "keywords": [
+    "fire weather",
+    "fuel moisture",
+    "EMC",
+    "wildfire",
+    "NFDRS",
+    "fire danger",
+    "meteorology",
+    "time-lag model",
+    "fire forecasting",
+    "equilibrium moisture content",
+    "fire behavior"
+  ],
+  "author": "James D. Cochran",
+  "license": "MIT",
+  "bugs": {
+    "url": "https://github.com/jamesdcochran-oss/fuel-moisture-calculator/issues"
+  },
+  "homepage": "https://github.com/jamesdcochran-oss/fuel-moisture-calculator#readme",
+  "files": [
+    "fuel-moisture-calculator.js",
+    "README.md",
+    "LICENSE"
+  ],
+  "engines": {
+    "node": ">=14.0.0"
+  }
+}
