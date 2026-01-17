@@ -248,6 +248,13 @@ console.log('\n--- Version Test ---');
 assert(typeof FuelMoistureCalculator.version === 'string', 'Should have version property');
 assert(FuelMoistureCalculator.version.length > 0, 'Version should not be empty');
 
+// Test 11: UI Helper Functions Exposed in API
+console.log('\n--- UI Helper Functions API Exposure Tests ---');
+assert(typeof FuelMoistureCalculator.populateDefaultForecastTable === 'function', 'Should expose populateDefaultForecastTable function');
+assert(typeof FuelMoistureCalculator.readForecastTable === 'function', 'Should expose readForecastTable function');
+assert(typeof FuelMoistureCalculator.showResults === 'function', 'Should expose showResults function');
+assert(typeof FuelMoistureCalculator.wireUI === 'function', 'Should expose wireUI function');
+
 // Summary
 console.log('\n=== Test Summary ===');
 console.log(`Total tests: ${testCount}`);

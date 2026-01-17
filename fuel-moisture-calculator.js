@@ -305,13 +305,19 @@
     return (f - 32) * 5 / 9;
   }
 
-  // Public API
-  return {
+  // ---------- Expose API ----------
+  const API = {
     computeEMC,
     stepMoisture,
     runModel,
+    populateDefaultForecastTable,
+    readForecastTable,
+    showResults,
+    wireUI,
     celsiusToFahrenheit,
     fahrenheitToCelsius,
     version: '1.0.0'
   };
+
+  return API;
 }));
