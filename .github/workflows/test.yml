@@ -1,0 +1,96 @@
+name: Tests
+
+on:
+  push:
+    branches: [ main, master, develop ]
+  pull_request:
+    branches: [ main, master, develop ]
+  workflow_dispatch:
+
+jobs:
+  test-node:
+    name: Test on Node.js
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        node-version: [14, 16, 18, 20]
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+      
+      - name: Setup Node.js ${{ matrix.node-version }}
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ matrix.node-version }}
+      
+      - name: Run tests
+        run: npm test
+
+  test-deno:
+    name: Test on Deno
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+      
+      - name: Setup Deno
+        uses: denoland/setup-deno@v1
+        with:
+          deno-version: v1.x
+      
+      - name: Run tests
+        run: deno run --allow-read test/test.js
+
+  test-bun:
+    name: Test on Bun
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+      
+      - name: Setup Bun
+        uses: oven-sh/setup-bun@v1
+        with:
+          bun-version: latest
+      
+      - name: Run tests
+        run: bun test/test.js
+
+  validate:
+    name: Validate Package
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+      
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+      
+      - name: Validate package.json
+        run: |
+          npm install -g npm@latest
+          npm pkg fix
+          echo "Package.json is valid"
+      
+      - name: Check file size
+        run: |
+          size=$(wc -c < fuel-moisture-calculator.js)
+          echo "Library size: $size bytes"
+          if [ $size -gt 50000 ]; then
+            echo "Warning: Library is larger than expected"
+          fi
+      
+      - name: Verify zero dependencies
+        run: |
+          if grep -q '"dependencies"' package.json; then
+            echo "Error: Package should have zero dependencies"
+            exit 1
+          else
+            echo "✓ Zero dependencies confirmed"
+          fi

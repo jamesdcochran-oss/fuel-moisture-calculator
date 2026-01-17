@@ -1,0 +1,49 @@
+{
+  "name": "fuel-moisture-calculator",
+  "version": "1.0.0",
+  "description": "Robust JavaScript library for fire weather fuel moisture calculations",
+  "main": "fuel-moisture-calculator.js",
+  "exports": {
+    ".": {
+      "import": "./fuel-moisture-calculator.js",
+      "require": "./fuel-moisture-calculator.js",
+      "default": "./fuel-moisture-calculator.js"
+    }
+  },
+  "scripts": {
+    "test": "node test/test.js",
+    "test:node": "node test/test.js",
+    "test:deno": "deno run --allow-read test/test.js",
+    "test:bun": "bun test/test.js"
+  },
+  "keywords": [
+    "fuel-moisture",
+    "fire-weather",
+    "wildfire",
+    "forestry",
+    "fire-behavior",
+    "fuel-moisture-content",
+    "weather",
+    "meteorology",
+    "fire-danger",
+    "nelson-model"
+  ],
+  "author": "James D. Cochran",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/jamesdcochran-oss/fuel-moisture-calculator.git"
+  },
+  "bugs": {
+    "url": "https://github.com/jamesdcochran-oss/fuel-moisture-calculator/issues"
+  },
+  "homepage": "https://github.com/jamesdcochran-oss/fuel-moisture-calculator#readme",
+  "files": [
+    "fuel-moisture-calculator.js",
+    "README.md",
+    "LICENSE"
+  ],
+  "engines": {
+    "node": ">=12.0.0"
+  }
+}
