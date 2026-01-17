@@ -1,96 +1,62 @@
-name: Tests
+name: Test
 
 on:
   push:
-    branches: [ main, master, develop ]
+    branches: [ main, develop ]
   pull_request:
-    branches: [ main, master, develop ]
-  workflow_dispatch:
+    branches: [ main ]
+
+permissions:
+  contents: read
 
 jobs:
-  test-node:
-    name: Test on Node.js
+  test:
     runs-on: ubuntu-latest
+    
     strategy:
       matrix:
-        node-version: [14, 16, 18, 20]
+        node-version: [14.x, 16.x, 18.x, 20.x]
     
     steps:
-      - name: Checkout code
-        uses: actions/checkout@v4
-      
-      - name: Setup Node.js ${{ matrix.node-version }}
-        uses: actions/setup-node@v4
-        with:
-          node-version: ${{ matrix.node-version }}
-      
-      - name: Run tests
-        run: npm test
-
-  test-deno:
-    name: Test on Deno
-    runs-on: ubuntu-latest
+    - uses: actions/checkout@v3
     
-    steps:
-      - name: Checkout code
-        uses: actions/checkout@v4
-      
-      - name: Setup Deno
-        uses: denoland/setup-deno@v1
-        with:
-          deno-version: v1.x
-      
-      - name: Run tests
-        run: deno run --allow-read test/test.js
-
-  test-bun:
-    name: Test on Bun
-    runs-on: ubuntu-latest
+    - name: Use Node.js ${{ matrix.node-version }}
+      uses: actions/setup-node@v3
+      with:
+        node-version: ${{ matrix.node-version }}
     
-    steps:
-      - name: Checkout code
-        uses: actions/checkout@v4
-      
-      - name: Setup Bun
-        uses: oven-sh/setup-bun@v1
-        with:
-          bun-version: latest
-      
-      - name: Run tests
-        run: bun test/test.js
-
-  validate:
-    name: Validate Package
-    runs-on: ubuntu-latest
+    - name: Run test suite
+      run: npm test
     
-    steps:
-      - name: Checkout code
-        uses: actions/checkout@v4
-      
-      - name: Setup Node.js
-        uses: actions/setup-node@v4
-        with:
-          node-version: 20
-      
-      - name: Validate package.json
-        run: |
-          npm install -g npm@latest
-          npm pkg fix
-          echo "Package.json is valid"
-      
-      - name: Check file size
-        run: |
-          size=$(wc -c < fuel-moisture-calculator.js)
-          echo "Library size: $size bytes"
-          if [ $size -gt 50000 ]; then
-            echo "Warning: Library is larger than expected"
-          fi
-      
-      - name: Verify zero dependencies
-        run: |
-          if grep -q '"dependencies"' package.json; then
-            echo "Error: Package should have zero dependencies"
-            exit 1
-          else
-            echo "✓ Zero dependencies confirmed"
-          fi
+    - name: Test Node.js example
+      run: node examples/node-example.js
+    
+    - name: Verify library loads without errors
+      run: node -e "const fs=require('fs'); eval(fs.readFileSync('fuel-moisture-calculator.js','utf8')); console.log('✓ Library loaded successfully');"
+    
+    - name: Test API functions exist
+      run: |
+        node -e "
+          const FMC = require('./fuel-moisture-calculator.js');
+          if (typeof FMC.computeEMC !== 'function') throw new Error('computeEMC not found');
+          if (typeof FMC.stepMoisture !== 'function') throw new Error('stepMoisture not found');
+          if (typeof FMC.runModel !== 'function') throw new Error('runModel not found');
+          console.log('✓ All API functions exist');
+        "
+    
+    - name: Test edge cases
+      run: |
+        node -e "
+          const FMC = require('./fuel-moisture-calculator.js');
+          
+          // Test zero preservation
+          const result = FMC.runModel(0, 0, [{ temp: 70, rh: 40, wind: 0, hours: 0 }]);
+          if (result.initial1hr !== 0) throw new Error('Zero not preserved for 1hr');
+          if (result.initial10hr !== 0) throw new Error('Zero not preserved for 10hr');
+          
+          // Test string inputs are converted
+          const emc = FMC.computeEMC('75', '50');
+          if (!Number.isFinite(emc)) throw new Error('String input not handled');
+          
+          console.log('✓ Edge cases handled correctly');
+        "

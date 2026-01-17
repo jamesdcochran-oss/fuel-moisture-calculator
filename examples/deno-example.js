@@ -7,50 +7,43 @@ import FuelMoistureCalculator from '../fuel-moisture-calculator.js';
 
 console.log('=== Fuel Moisture Calculator - Deno Example ===\n');
 
-// Example 1: Calculate fine fuel moisture
-console.log('Example 1: Fine Fuel Moisture');
-const fineMoisture = FuelMoistureCalculator.calculateFineFuelMoisture(75, 50);
+// Example 1: Compute EMC
+console.log('Example 1: Compute EMC');
+const emc = FuelMoistureCalculator.computeEMC(75, 50);
 console.log(`  Temperature: 75°F, Humidity: 50%`);
-console.log(`  Fine Fuel Moisture: ${fineMoisture.toFixed(2)}%\n`);
+console.log(`  EMC: ${emc}%\n`);
 
-// Example 2: Calculate all fuel moisture classes
-console.log('Example 2: All Fuel Moisture Classes');
-const allMoistures = FuelMoistureCalculator.calculateAllFuelMoistures({
-    temperature: 85,
-    relativeHumidity: 30,
-    shading: 0.5
+// Example 2: Run forecast model
+console.log('Example 2: Multi-Day Forecast');
+const forecast = [
+  { temp: 70, rh: 60, hours: 12 },
+  { temp: 75, rh: 50, hours: 12 },
+  { temp: 80, rh: 40, hours: 12 }
+];
+
+const results = FuelMoistureCalculator.runModel(8, 10, forecast);
+
+console.log(`  Initial: 1-hr ${results.initial1hr}%, 10-hr ${results.initial10hr}%`);
+results.dailyResults.forEach(day => {
+  console.log(`  ${day.day}: ${day.moisture1Hr}% (1-hr), ${day.moisture10Hr}% (10-hr)`);
 });
 
-console.log(`  Temperature: 85°F, Humidity: 30%, Shading: 0.5`);
-console.log(`  1-Hour:    ${allMoistures.oneHour.toFixed(2)}%`);
-console.log(`  10-Hour:   ${allMoistures.tenHour.toFixed(2)}%`);
-console.log(`  100-Hour:  ${allMoistures.hundredHour.toFixed(2)}%`);
-console.log(`  1000-Hour: ${allMoistures.thousandHour.toFixed(2)}%\n`);
-
 // Example 3: Temperature conversion
-console.log('Example 3: Temperature Conversion');
-const celsius = 25;
-const fahrenheit = FuelMoistureCalculator.celsiusToFahrenheit(celsius);
-console.log(`  ${celsius}°C = ${fahrenheit.toFixed(1)}°F`);
+console.log('\nExample 3: Temperature Conversion');
+const fahrenheit = FuelMoistureCalculator.celsiusToFahrenheit(25);
+console.log(`  25°C = ${fahrenheit.toFixed(1)}°F`);
 
-const f = 77;
-const c = FuelMoistureCalculator.fahrenheitToCelsius(f);
-console.log(`  ${f}°F = ${c.toFixed(1)}°C\n`);
-
-// Example 4: Multiple calculations for different conditions
-console.log('Example 4: Weather Scenarios');
+// Example 4: Compare different weather scenarios
+console.log('\nExample 4: Weather Scenario Comparison');
 const scenarios = [
-    { name: 'Hot & Dry', temp: 95, humidity: 15 },
-    { name: 'Moderate', temp: 70, humidity: 50 },
-    { name: 'Cool & Wet', temp: 55, humidity: 80 }
+  { name: 'Hot & Dry', temp: 95, rh: 15 },
+  { name: 'Moderate', temp: 70, rh: 50 },
+  { name: 'Cool & Wet', temp: 55, rh: 80 }
 ];
 
 scenarios.forEach(scenario => {
-    const moisture = FuelMoistureCalculator.calculateFineFuelMoisture(
-        scenario.temp,
-        scenario.humidity
-    );
-    console.log(`  ${scenario.name}: ${moisture.toFixed(2)}% (${scenario.temp}°F, ${scenario.humidity}% RH)`);
+  const emc = FuelMoistureCalculator.computeEMC(scenario.temp, scenario.rh);
+  console.log(`  ${scenario.name}: EMC ${emc}% at ${scenario.temp}°F, ${scenario.rh}% RH`);
 });
 
 console.log('\n=== Examples Complete ===');

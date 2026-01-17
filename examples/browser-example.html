@@ -103,31 +103,42 @@
                 const humidity = parseFloat(document.getElementById('humidity').value);
                 const shading = parseFloat(document.getElementById('shading').value);
                 
-                const moistures = FuelMoistureCalculator.calculateAllFuelMoistures({
-                    temperature: temperature,
-                    relativeHumidity: humidity,
-                    shading: shading
-                });
+                // Compute EMC
+                const emc = FuelMoistureCalculator.computeEMC(temperature, humidity);
+                
+                // Simulate time-lag response for different fuel classes
+                const initial1hr = 10; // Starting moisture
+                const initial10hr = 12;
+                
+                // Calculate moisture after 12 hours
+                const moisture1hr = FuelMoistureCalculator.stepMoisture(initial1hr, emc, 12, 1);
+                const moisture10hr = FuelMoistureCalculator.stepMoisture(initial10hr, emc, 12, 10);
+                const moisture100hr = FuelMoistureCalculator.stepMoisture(14, emc, 12, 100);
+                const moisture1000hr = FuelMoistureCalculator.stepMoisture(16, emc, 12, 1000);
                 
                 const resultsDiv = document.getElementById('results');
                 const resultsContent = document.getElementById('resultsContent');
                 
                 resultsContent.innerHTML = `
                     <div class="result-item">
-                        <strong>1-Hour Fuel Moisture:</strong> ${moistures.oneHour.toFixed(2)}%
-                        <br><small>Fine fuels < 0.25" diameter</small>
+                        <strong>Equilibrium Moisture Content (EMC):</strong> ${emc}%
+                        <br><small>Target moisture for current conditions</small>
                     </div>
                     <div class="result-item">
-                        <strong>10-Hour Fuel Moisture:</strong> ${moistures.tenHour.toFixed(2)}%
+                        <strong>1-Hour Fuel Moisture:</strong> ${moisture1hr}%
+                        <br><small>Fine fuels < 0.25" diameter (fast response)</small>
+                    </div>
+                    <div class="result-item">
+                        <strong>10-Hour Fuel Moisture:</strong> ${moisture10hr}%
                         <br><small>Fuels 0.25-1" diameter</small>
                     </div>
                     <div class="result-item">
-                        <strong>100-Hour Fuel Moisture:</strong> ${moistures.hundredHour.toFixed(2)}%
-                        <br><small>Fuels 1-3" diameter</small>
+                        <strong>100-Hour Fuel Moisture:</strong> ${moisture100hr}%
+                        <br><small>Fuels 1-3" diameter (slow response)</small>
                     </div>
                     <div class="result-item">
-                        <strong>1000-Hour Fuel Moisture:</strong> ${moistures.thousandHour.toFixed(2)}%
-                        <br><small>Fuels 3-8" diameter</small>
+                        <strong>1000-Hour Fuel Moisture:</strong> ${moisture1000hr}%
+                        <br><small>Fuels 3-8" diameter (very slow response)</small>
                     </div>
                 `;
                 

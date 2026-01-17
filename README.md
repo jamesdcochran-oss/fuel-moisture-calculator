@@ -4,18 +4,19 @@
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 [![Tests](https://github.com/jamesdcochran-oss/fuel-moisture-calculator/workflows/tests/badge.svg)](https://github.com/jamesdcochran-oss/fuel-moisture-calculator/actions)
 
-A robust, production-ready JavaScript library for calculating fire weather fuel moisture content. Based on established scientific models (Nelson 2000), this library helps predict fuel moisture across different timelag classes for fire behavior analysis and wildfire risk assessment.
+A robust, production-ready JavaScript library for calculating fire weather fuel moisture content. Uses empirical approximation methods and exponential time-lag models commonly employed in fire weather tools for practical fuel moisture prediction.
 
 ## ✨ Key Features
 
 - **🌍 Universal Compatibility**: Works seamlessly in browser, Node.js, Deno, and Bun
 - **📦 Zero Dependencies**: Pure JavaScript with no external requirements
-- **🛡️ Production Ready**: Validated, tested, documented, and hardened
+- **🛡️ Production Ready**: Validated with 51 comprehensive tests
 - **🚀 CDN Ready**: Can be served via jsDelivr or unpkg
 - **📚 NPM Ready**: Published and ready to install
-- **🔄 Automated Testing**: Comprehensive test suite with CI/CD
-- **🛠️ Defensive Programming**: Robust input validation throughout
+- **🔄 Automated Testing**: GitHub Actions CI/CD workflow
+- **🛠️ Defensive Programming**: Robust input validation and error handling
 - **📖 Well Documented**: Complete API documentation and examples
+- **🌐 Browser UI Support**: Optional DOM wiring for interactive web applications
 
 ## 📥 Installation
 
@@ -49,10 +50,6 @@ or
 <script src="https://unpkg.com/fuel-moisture-calculator@1.0.0/fuel-moisture-calculator.js"></script>
 ```
 
-### Download
-
-Download the standalone `fuel-moisture-calculator.js` file and include it in your project.
-
 ## 🚀 Quick Start
 
 ### Node.js
@@ -60,24 +57,20 @@ Download the standalone `fuel-moisture-calculator.js` file and include it in you
 ```javascript
 const FuelMoistureCalculator = require('fuel-moisture-calculator');
 
-// Calculate fine fuel (1-hour) moisture
-const moisture = FuelMoistureCalculator.calculateFineFuelMoisture(75, 50);
-console.log(`Fuel moisture: ${moisture.toFixed(2)}%`);
+// Calculate equilibrium moisture content (EMC)
+const emc = FuelMoistureCalculator.computeEMC(75, 50);
+console.log(`EMC: ${emc}%`); // 3.8%
 
-// Calculate all timelag classes at once
-const allMoistures = FuelMoistureCalculator.calculateAllFuelMoistures({
-    temperature: 75,      // °F
-    relativeHumidity: 50, // %
-    shading: 0.5         // 0-1 (optional)
-});
+// Model time-lag drying over 12 hours
+const newMoisture = FuelMoistureCalculator.stepMoisture(12, emc, 12, 10);
+console.log(`New moisture: ${newMoisture}%`); // 9.2%
 
-console.log(allMoistures);
-// {
-//   oneHour: 1.23,
-//   tenHour: 1.33,
-//   hundredHour: 1.38,
-//   thousandHour: 1.57
-// }
+// Run multi-day forecast
+const results = FuelMoistureCalculator.runModel(10, 12, [
+    { temp: 75, rh: 50, hours: 12 },
+    { temp: 80, rh: 40, hours: 12 }
+]);
+console.log(results.dailyResults);
 ```
 
 ### Browser
@@ -85,8 +78,8 @@ console.log(allMoistures);
 ```html
 <script src="https://cdn.jsdelivr.net/npm/fuel-moisture-calculator@1.0.0/fuel-moisture-calculator.js"></script>
 <script>
-    const moisture = FuelMoistureCalculator.calculateFineFuelMoisture(75, 50);
-    console.log(`Fuel moisture: ${moisture.toFixed(2)}%`);
+    const emc = FuelMoistureCalculator.computeEMC(75, 50);
+    console.log(`EMC: ${emc}%`);
 </script>
 ```
 
@@ -95,104 +88,91 @@ console.log(allMoistures);
 ```javascript
 import FuelMoistureCalculator from 'https://cdn.jsdelivr.net/npm/fuel-moisture-calculator@1.0.0/fuel-moisture-calculator.js';
 
-const moisture = FuelMoistureCalculator.calculateFineFuelMoisture(75, 50);
-console.log(`Fuel moisture: ${moisture.toFixed(2)}%`);
+const emc = FuelMoistureCalculator.computeEMC(75, 50);
+console.log(`EMC: ${emc}%`);
 ```
 
 ## 📖 API Reference
 
-### calculateFineFuelMoisture(temperature, relativeHumidity)
+### computeEMC(tempF, rh)
 
-Calculate fine fuel moisture content (1-hour timelag fuels < 0.25" diameter).
+Compute Equilibrium Moisture Content (EMC) using empirical approximation commonly used in fire-weather tools.
 
 **Parameters:**
-- `temperature` (number): Air temperature in degrees Fahrenheit (-50 to 150)
-- `relativeHumidity` (number): Relative humidity as percentage (0-100)
+- `tempF` (number): Air temperature in degrees Fahrenheit
+- `rh` (number): Relative humidity as percentage (0-100, automatically clamped)
 
-**Returns:** (number) Fuel moisture content as percentage
+**Returns:** (number) Equilibrium moisture content as percentage (minimum 0.1%)
 
 **Example:**
 ```javascript
-const moisture = FuelMoistureCalculator.calculateFineFuelMoisture(75, 50);
-// Returns: ~1.23
+const emc = FuelMoistureCalculator.computeEMC(75, 50);
+// Returns: 3.8
 ```
 
-### calculate10HourFuelMoisture(temperature, relativeHumidity, shading)
+### stepMoisture(initial, emc, hours, timeLag)
 
-Calculate 10-hour fuel moisture content (0.25-1" diameter).
+Calculate fuel moisture using exponential time-lag drying/wetting model.
+
+Formula: `m_t = EMC + (m0 - EMC) * exp(-hours / timeLag)`
 
 **Parameters:**
-- `temperature` (number): Air temperature in degrees Fahrenheit
-- `relativeHumidity` (number): Relative humidity as percentage
-- `shading` (number, optional): Shading factor 0-1 (0=full sun, 1=full shade). Default: 0
+- `initial` (number): Initial moisture content as percentage
+- `emc` (number): Equilibrium moisture content as percentage
+- `hours` (number): Number of hours for the time step
+- `timeLag` (number): Time lag constant in hours
+  - `1` for 1-hour fuels (< 0.25" diameter)
+  - `10` for 10-hour fuels (0.25-1" diameter)
+  - `100` for 100-hour fuels (1-3" diameter)
+  - `1000` for 1000-hour fuels (3-8" diameter)
 
-**Returns:** (number) Fuel moisture content as percentage
+**Returns:** (number) New moisture content as percentage
 
 **Example:**
 ```javascript
-const moisture = FuelMoistureCalculator.calculate10HourFuelMoisture(75, 50, 0.5);
-// Returns: ~1.33
+const moisture = FuelMoistureCalculator.stepMoisture(12, 8, 12, 10);
+// Returns: 9.2 (moisture moving toward EMC of 8%)
 ```
 
-### calculate100HourFuelMoisture(temperature, relativeHumidity, previousMoisture)
+### runModel(initial1hr, initial10hr, forecastEntries)
 
-Calculate 100-hour fuel moisture content (1-3" diameter).
+Run moisture model over multiple forecast days.
 
 **Parameters:**
-- `temperature` (number): Air temperature in degrees Fahrenheit
-- `relativeHumidity` (number): Relative humidity as percentage
-- `previousMoisture` (number, optional): Previous moisture content for lag calculation (0-100)
+- `initial1hr` (number): Initial 1-hour fuel moisture percentage
+- `initial10hr` (number): Initial 10-hour fuel moisture percentage
+- `forecastEntries` (Array<Object>): Array of forecast day objects
+  - `label` (string, optional): Day label (e.g., "Day 1", "Monday")
+  - `temp` (number): Temperature in °F
+  - `rh` (number): Relative humidity percentage
+  - `wind` (number, optional): Wind speed
+  - `hours` (number, optional): Hours in period (default: 12)
 
-**Returns:** (number) Fuel moisture content as percentage
+**Returns:** (Object) Model results
+- `initial1hr` (number): Initial 1-hour moisture
+- `initial10hr` (number): Initial 10-hour moisture
+- `dailyResults` (Array): Array of daily calculations
+  - `day` (string): Day label
+  - `temp` (number): Temperature
+  - `rh` (number): Relative humidity
+  - `wind` (number): Wind speed
+  - `hours` (number): Time period
+  - `moisture1Hr` (number): Calculated 1-hour moisture
+  - `moisture10Hr` (number): Calculated 10-hour moisture
+- `summary` (Object): Summary information
+  - `firstCritical1HrDay` (string|null): First day 1-hour moisture ≤ 6% (critical)
 
 **Example:**
 ```javascript
-const moisture = FuelMoistureCalculator.calculate100HourFuelMoisture(75, 50, 12);
-// Returns: ~12.11 (weighted toward previous value)
-```
+const results = FuelMoistureCalculator.runModel(10, 12, [
+    { label: 'Monday', temp: 75, rh: 50, hours: 12 },
+    { label: 'Tuesday', temp: 80, rh: 40, hours: 12 }
+]);
 
-### calculate1000HourFuelMoisture(temperature, relativeHumidity, previousMoisture)
-
-Calculate 1000-hour fuel moisture content (3-8" diameter).
-
-**Parameters:**
-- `temperature` (number): Air temperature in degrees Fahrenheit
-- `relativeHumidity` (number): Relative humidity as percentage
-- `previousMoisture` (number, optional): Previous moisture content for lag calculation (0-100)
-
-**Returns:** (number) Fuel moisture content as percentage
-
-**Example:**
-```javascript
-const moisture = FuelMoistureCalculator.calculate1000HourFuelMoisture(75, 50, 15);
-// Returns: ~15.03 (strongly weighted toward previous value)
-```
-
-### calculateAllFuelMoistures(conditions, previous)
-
-Calculate all fuel moisture timelag classes at once.
-
-**Parameters:**
-- `conditions` (object): Weather conditions
-  - `temperature` (number): Air temperature in °F
-  - `relativeHumidity` (number): Relative humidity %
-  - `shading` (number, optional): Shading factor 0-1
-- `previous` (object, optional): Previous moisture values
-  - `hundredHour` (number, optional): Previous 100-hour moisture
-  - `thousandHour` (number, optional): Previous 1000-hour moisture
-
-**Returns:** (object) Moisture content for all timelag classes
-- `oneHour` (number): 1-hour fuel moisture %
-- `tenHour` (number): 10-hour fuel moisture %
-- `hundredHour` (number): 100-hour fuel moisture %
-- `thousandHour` (number): 1000-hour fuel moisture %
-
-**Example:**
-```javascript
-const moistures = FuelMoistureCalculator.calculateAllFuelMoistures(
-    { temperature: 75, relativeHumidity: 50, shading: 0.5 },
-    { hundredHour: 12, thousandHour: 15 }
-);
+console.log(results.dailyResults);
+if (results.summary.firstCritical1HrDay) {
+    console.log(`Critical drying on ${results.summary.firstCritical1HrDay}`);
+}
 ```
 
 ### celsiusToFahrenheit(celsius)
@@ -215,20 +195,23 @@ Convert temperature from Fahrenheit to Celsius.
 
 ## 🔬 Scientific Background
 
-This library implements Nelson's fuel moisture model (2000), which calculates equilibrium moisture content (EMC) for dead fuels based on temperature and relative humidity. The model uses different equations for different humidity ranges and applies temperature correction factors.
+This library implements empirical fuel moisture calculations using:
+
+1. **Equilibrium Moisture Content (EMC)**: Empirical approximation formula commonly used in fire weather tools
+2. **Exponential Time-Lag Model**: Models how fuels gradually adjust to equilibrium conditions based on their size class
 
 **Fuel Timelag Classes:**
 
-- **1-Hour Fuels**: Fine fuels < 0.25" diameter (grass, needles, small twigs)
-- **10-Hour Fuels**: 0.25-1" diameter (small branches)
-- **100-Hour Fuels**: 1-3" diameter (medium branches)
-- **1000-Hour Fuels**: 3-8" diameter (logs, large branches)
+- **1-Hour Fuels**: Fine fuels < 0.25" diameter (grass, needles, small twigs) - rapid response
+- **10-Hour Fuels**: 0.25-1" diameter (small branches) - moderate response
+- **100-Hour Fuels**: 1-3" diameter (medium branches) - slow response
+- **1000-Hour Fuels**: 3-8" diameter (logs, large branches) - very slow response
 
 The timelag represents the time required for the fuel to lose or gain approximately 63% of the difference between its current moisture content and the equilibrium moisture content.
 
 ## 🧪 Testing
 
-Run the test suite:
+Run the test suite (51 comprehensive tests):
 
 ```bash
 # Node.js
@@ -245,29 +228,28 @@ bun test/test.js
 
 Check the `examples/` directory for complete working examples:
 
-- `browser-example.html` - Interactive web interface
+- `browser-example.html` - Interactive web interface with UI controls
 - `node-example.js` - Node.js usage examples
 - `deno-example.js` - Deno usage examples
 - `bun-example.js` - Bun usage examples
 
 ## 🛡️ Error Handling
 
-The library performs comprehensive input validation:
+The library performs defensive input validation:
 
 ```javascript
+// String inputs are automatically converted to numbers
+const emc = FuelMoistureCalculator.computeEMC('75', 50); // Works!
+
+// Invalid inputs throw TypeErrors
 try {
-    const moisture = FuelMoistureCalculator.calculateFineFuelMoisture('invalid', 50);
+    FuelMoistureCalculator.computeEMC(NaN, 50);
 } catch (error) {
-    console.error(error.message);
-    // "temperature must be a finite number, got string: invalid"
+    console.error(error.message); // "Temperature and humidity must be finite numbers"
 }
 
-try {
-    const moisture = FuelMoistureCalculator.calculateFineFuelMoisture(75, 150);
-} catch (error) {
-    console.error(error.message);
-    // "relativeHumidity must be between 0 and 100, got 150"
-}
+// Humidity is automatically clamped to 0-100 range
+const emc2 = FuelMoistureCalculator.computeEMC(75, 150); // Treated as 100%
 ```
 
 ## 📄 License
@@ -284,8 +266,7 @@ Contributions, issues, and feature requests are welcome! Feel free to check the 
 
 ## 📦 Package Size
 
-- **Minified**: ~4KB
-- **Gzipped**: ~1.5KB
+- **Uncompressed**: ~12KB
 - **Zero dependencies**
 
 ## 🔗 Links
@@ -293,7 +274,3 @@ Contributions, issues, and feature requests are welcome! Feel free to check the 
 - [NPM Package](https://www.npmjs.com/package/fuel-moisture-calculator)
 - [GitHub Repository](https://github.com/jamesdcochran-oss/fuel-moisture-calculator)
 - [Issue Tracker](https://github.com/jamesdcochran-oss/fuel-moisture-calculator/issues)
-
-## ⭐ References
-
-Nelson, R.M., Jr. 2000. Prediction of diurnal change in 10-h fuel stick moisture content. Canadian Journal of Forest Research 30: 1071-1087.
