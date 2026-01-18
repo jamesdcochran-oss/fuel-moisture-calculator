@@ -323,6 +323,15 @@
             border-left: 4px solid #17a2b8;
         }
         
+        .critical-forecast {
+            margin-top: 20px;
+        }
+        
+        .forecast-title {
+            margin-top: 20px;
+            color: #333;
+        }
+        
         @media (max-width: 768px) {
             .grid-container {
                 grid-template-columns: 1fr;
@@ -477,6 +486,23 @@
         // Fire Behavior Calculator Class
         class FireBehavior {
             constructor() {
+                // Rothermel model constants
+                this.MOISTURE_DAMPING_COEF = {
+                    A: 2.59,  // Linear coefficient
+                    B: 5.11,  // Quadratic coefficient
+                    C: 3.52   // Cubic coefficient
+                };
+                
+                // Wind factor constants (empirical power law)
+                this.WIND_BASE_SPEED = 10;     // mph - reference wind speed
+                this.WIND_POWER_EXPONENT = 1.2; // dimensionless - wind response exponent
+                
+                // Slope factor constant
+                this.SLOPE_MULTIPLIER = 2;     // dimensionless - simplified slope effect
+                
+                // Default initial moisture for 100-hour fuels (%)
+                this.DEFAULT_100HR_MOISTURE = 14;
+                
                 // Fuel model parameters (simplified Rothermel model)
                 this.fuelModels = {
                     1: { load: 0.74, savr: 3500, depth: 1.0, heat: 8000, name: "Short Grass" },
@@ -501,14 +527,19 @@
                 const fuel = this.fuelModels[fuelModel];
                 if (!fuel) return 0;
                 
-                // Moisture damping coefficient
-                const moistureDamping = Math.max(0, 1 - 2.59 * (moisture1hr / 100) + 5.11 * Math.pow(moisture1hr / 100, 2) - 3.52 * Math.pow(moisture1hr / 100, 3));
+                // Moisture damping coefficient (polynomial approximation from Rothermel)
+                const m = moisture1hr / 100;
+                const moistureDamping = Math.max(0, 
+                    1 - this.MOISTURE_DAMPING_COEF.A * m + 
+                    this.MOISTURE_DAMPING_COEF.B * Math.pow(m, 2) - 
+                    this.MOISTURE_DAMPING_COEF.C * Math.pow(m, 3)
+                );
                 
-                // Wind factor (simplified)
-                const windFactor = Math.pow(windSpeed / 10, 1.2);
+                // Wind factor (empirical power law relationship)
+                const windFactor = Math.pow(windSpeed / this.WIND_BASE_SPEED, this.WIND_POWER_EXPONENT);
                 
-                // Slope factor
-                const slopeFactor = 1 + (slope / 100) * 2;
+                // Slope factor (simplified linear relationship)
+                const slopeFactor = 1 + (slope / 100) * this.SLOPE_MULTIPLIER;
                 
                 // Base rate of spread (simplified calculation)
                 const baseROS = fuel.load * fuel.savr / fuel.depth * 0.01;
@@ -642,7 +673,8 @@
                 const emc = FuelMoistureCalculator.computeEMC(temp, rh);
                 const final1hr = FuelMoistureCalculator.stepMoisture(initial1hr, emc, hours, 1);
                 const final10hr = FuelMoistureCalculator.stepMoisture(initial10hr, emc, hours, 10);
-                const final100hr = FuelMoistureCalculator.stepMoisture(14, emc, hours, 100);
+                // Use default 100-hour moisture from FireBehavior class
+                const final100hr = FuelMoistureCalculator.stepMoisture(fireBehavior.DEFAULT_100HR_MOISTURE, emc, hours, 100);
                 
                 let html = '<div class="results-box"><h3>Fuel Moisture Results</h3>';
                 
@@ -714,7 +746,7 @@
                 
                 const data = forecasts[county] || forecasts['Greensville'];
                 
-                let html = `<h3 style="margin-top: 20px; color: #333;">${county} County 5-Day Forecast</h3>`;
+                let html = `<h3 class="forecast-title">${county} County 5-Day Forecast</h3>`;
                 html += '<div class="forecast-grid">';
                 
                 data.forEach(day => {
@@ -743,7 +775,7 @@
                 });
                 
                 if (criticalDays.length > 0) {
-                    html += '<div class="critical" style="margin-top: 20px;"><strong>⚠️ CRITICAL FIRE WEATHER FORECAST</strong><br>';
+                    html += '<div class="critical critical-forecast"><strong>⚠️ CRITICAL FIRE WEATHER FORECAST</strong><br>';
                     html += `Critical drying conditions expected on: ${criticalDays.map(d => d.day).join(', ')}</div>`;
                 }
                 
