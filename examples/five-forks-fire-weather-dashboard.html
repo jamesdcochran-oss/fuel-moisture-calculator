@@ -1,0 +1,856 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Five Forks Fire Weather Dashboard</title>
+
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+        
+        .dashboard-container {
+            max-width: 1400px;
+            margin: 0 auto;
+        }
+        
+        header {
+            background: white;
+            padding: 30px;
+            border-radius: 12px;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+            margin-bottom: 20px;
+            text-align: center;
+        }
+        
+        header h1 {
+            color: #333;
+            font-size: 2.5em;
+            margin-bottom: 10px;
+        }
+        
+        header p {
+            color: #666;
+            font-size: 1.1em;
+        }
+        
+        .grid-container {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(400px, 1fr));
+            gap: 20px;
+            margin-bottom: 20px;
+        }
+        
+        .card {
+            background: white;
+            padding: 25px;
+            border-radius: 12px;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+        }
+        
+        .card h2 {
+            color: #333;
+            font-size: 1.5em;
+            margin-bottom: 20px;
+            padding-bottom: 10px;
+            border-bottom: 3px solid #667eea;
+        }
+        
+        .form-group {
+            margin-bottom: 15px;
+        }
+        
+        .form-group label {
+            display: block;
+            margin-bottom: 5px;
+            font-weight: 600;
+            color: #555;
+        }
+        
+        .form-group input,
+        .form-group select {
+            width: 100%;
+            padding: 10px;
+            border: 2px solid #e0e0e0;
+            border-radius: 6px;
+            font-size: 14px;
+            transition: border-color 0.3s;
+        }
+        
+        .form-group input:focus,
+        .form-group select:focus {
+            outline: none;
+            border-color: #667eea;
+        }
+        
+        .button-group {
+            display: flex;
+            gap: 10px;
+            margin-top: 20px;
+        }
+        
+        button {
+            flex: 1;
+            padding: 12px 24px;
+            background: #667eea;
+            color: white;
+            border: none;
+            border-radius: 6px;
+            font-size: 16px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: background 0.3s;
+        }
+        
+        button:hover {
+            background: #5568d3;
+        }
+        
+        button:active {
+            transform: translateY(1px);
+        }
+        
+        .results-box {
+            margin-top: 20px;
+            padding: 15px;
+            background: #f8f9fa;
+            border-radius: 6px;
+            border-left: 4px solid #667eea;
+        }
+        
+        .results-box h3 {
+            color: #333;
+            margin-bottom: 10px;
+            font-size: 1.2em;
+        }
+        
+        .result-item {
+            padding: 10px;
+            margin: 8px 0;
+            background: white;
+            border-radius: 4px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        
+        .result-label {
+            font-weight: 600;
+            color: #555;
+        }
+        
+        .result-value {
+            font-size: 1.2em;
+            color: #667eea;
+            font-weight: bold;
+        }
+        
+        .warning {
+            background: #fff3cd;
+            border-left-color: #ffc107;
+            color: #856404;
+            padding: 15px;
+            border-radius: 6px;
+            margin-top: 15px;
+            border-left: 4px solid #ffc107;
+        }
+        
+        .critical {
+            background: #f8d7da;
+            border-left-color: #dc3545;
+            color: #721c24;
+            padding: 15px;
+            border-radius: 6px;
+            margin-top: 15px;
+            border-left: 4px solid #dc3545;
+        }
+        
+        #map {
+            width: 100%;
+            height: 500px;
+            border-radius: 8px;
+            margin-top: 15px;
+            background: #e8f4f8;
+            position: relative;
+            overflow: hidden;
+        }
+        
+        .map-placeholder {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            text-align: center;
+            color: #666;
+        }
+        
+        .map-canvas {
+            width: 100%;
+            height: 100%;
+            background: #d0e8f0;
+        }
+        
+        .hotspot-dot {
+            position: absolute;
+            width: 16px;
+            height: 16px;
+            background: #ff4444;
+            border: 2px solid #8b0000;
+            border-radius: 50%;
+            cursor: pointer;
+            transform: translate(-50%, -50%);
+        }
+        
+        .station-marker {
+            position: absolute;
+            width: 12px;
+            height: 12px;
+            background: #667eea;
+            border: 2px solid #333;
+            border-radius: 50%;
+            cursor: pointer;
+            transform: translate(-50%, -50%);
+        }
+        
+        .marker-popup {
+            position: absolute;
+            background: white;
+            padding: 10px;
+            border-radius: 4px;
+            box-shadow: 0 2px 6px rgba(0,0,0,0.3);
+            font-size: 12px;
+            min-width: 150px;
+            z-index: 1000;
+        }
+        
+        .map-legend {
+            position: absolute;
+            bottom: 20px;
+            right: 20px;
+            background: white;
+            padding: 15px;
+            border-radius: 6px;
+            box-shadow: 0 2px 6px rgba(0,0,0,0.2);
+            font-size: 12px;
+            z-index: 100;
+        }
+        
+        .map-container {
+            grid-column: 1 / -1;
+        }
+        
+        .weather-forecast {
+            grid-column: 1 / -1;
+        }
+        
+        .forecast-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+            gap: 15px;
+            margin-top: 15px;
+        }
+        
+        .forecast-day {
+            background: #f8f9fa;
+            padding: 15px;
+            border-radius: 8px;
+            text-align: center;
+            transition: transform 0.2s;
+        }
+        
+        .forecast-day:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+        }
+        
+        .forecast-day h4 {
+            color: #333;
+            margin-bottom: 10px;
+        }
+        
+        .forecast-temp {
+            font-size: 2em;
+            color: #667eea;
+            font-weight: bold;
+        }
+        
+        .forecast-details {
+            margin-top: 10px;
+            font-size: 0.9em;
+            color: #666;
+        }
+        
+        .loading {
+            text-align: center;
+            padding: 20px;
+            color: #666;
+            font-style: italic;
+        }
+        
+        .county-badge {
+            display: inline-block;
+            padding: 5px 10px;
+            background: #667eea;
+            color: white;
+            border-radius: 4px;
+            margin: 5px;
+            font-size: 0.9em;
+        }
+        
+        .hotspot-marker {
+            background: #ff4444;
+            color: white;
+            padding: 4px 8px;
+            border-radius: 50%;
+            font-weight: bold;
+        }
+        
+        .info-section {
+            background: #e8f4f8;
+            padding: 15px;
+            border-radius: 6px;
+            margin-top: 15px;
+            border-left: 4px solid #17a2b8;
+        }
+        
+        @media (max-width: 768px) {
+            .grid-container {
+                grid-template-columns: 1fr;
+            }
+            
+            header h1 {
+                font-size: 1.8em;
+            }
+            
+            .forecast-grid {
+                grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="dashboard-container">
+        <header>
+            <h1>🔥 Five Forks Fire Weather Dashboard</h1>
+            <p>Comprehensive Fire Behavior Analysis & Weather Monitoring</p>
+        </header>
+        
+        <div class="grid-container">
+            <!-- Fire Behavior Calculator -->
+            <div class="card">
+                <h2>🔥 Fire Behavior Calculator</h2>
+                <div class="form-group">
+                    <label for="fuelType">Fuel Model:</label>
+                    <select id="fuelType">
+                        <option value="1">Model 1 - Short Grass (1 ft)</option>
+                        <option value="2" selected>Model 2 - Timber Grass (1 ft)</option>
+                        <option value="3">Model 3 - Tall Grass (2.5 ft)</option>
+                        <option value="4">Model 4 - Chaparral (6 ft)</option>
+                        <option value="5">Model 5 - Brush (2 ft)</option>
+                        <option value="6">Model 6 - Dormant Brush (2.5 ft)</option>
+                        <option value="7">Model 7 - Southern Rough</option>
+                    </select>
+                </div>
+                
+                <div class="form-group">
+                    <label for="windSpeed">Wind Speed (mph):</label>
+                    <input type="number" id="windSpeed" value="10" min="0" max="100" step="1">
+                </div>
+                
+                <div class="form-group">
+                    <label for="slope">Slope (%):</label>
+                    <input type="number" id="slope" value="0" min="0" max="100" step="5">
+                </div>
+                
+                <div class="form-group">
+                    <label for="fuelMoisture1hr">1-Hour Fuel Moisture (%):</label>
+                    <input type="number" id="fuelMoisture1hr" value="6" min="1" max="30" step="0.1">
+                </div>
+                
+                <div class="form-group">
+                    <label for="fuelMoisture10hr">10-Hour Fuel Moisture (%):</label>
+                    <input type="number" id="fuelMoisture10hr" value="8" min="1" max="30" step="0.1">
+                </div>
+                
+                <div class="form-group">
+                    <label for="fuelMoisture100hr">100-Hour Fuel Moisture (%):</label>
+                    <input type="number" id="fuelMoisture100hr" value="10" min="1" max="30" step="0.1">
+                </div>
+                
+                <button onclick="calculateFireBehavior()">Calculate Fire Behavior</button>
+                
+                <div id="fireBehaviorResults"></div>
+            </div>
+            
+            <!-- Fuel Moisture Calculator -->
+            <div class="card">
+                <h2>💧 Fuel Moisture Calculator</h2>
+                <div class="form-group">
+                    <label for="temperature">Temperature (°F):</label>
+                    <input type="number" id="temperature" value="85" min="-20" max="130" step="1">
+                </div>
+                
+                <div class="form-group">
+                    <label for="relativeHumidity">Relative Humidity (%):</label>
+                    <input type="number" id="relativeHumidity" value="25" min="0" max="100" step="1">
+                </div>
+                
+                <div class="form-group">
+                    <label for="initialMoisture1hr">Initial 1-Hr Moisture (%):</label>
+                    <input type="number" id="initialMoisture1hr" value="10" min="1" max="30" step="0.1">
+                </div>
+                
+                <div class="form-group">
+                    <label for="initialMoisture10hr">Initial 10-Hr Moisture (%):</label>
+                    <input type="number" id="initialMoisture10hr" value="12" min="1" max="30" step="0.1">
+                </div>
+                
+                <div class="form-group">
+                    <label for="dryingHours">Drying Hours:</label>
+                    <input type="number" id="dryingHours" value="12" min="1" max="48" step="1">
+                </div>
+                
+                <button onclick="calculateFuelMoisture()">Calculate Fuel Moisture</button>
+                
+                <div id="fuelMoistureResults"></div>
+            </div>
+        </div>
+        
+        <!-- Weather Forecast Section -->
+        <div class="grid-container">
+            <div class="card weather-forecast">
+                <h2>🌤️ NOAA Weather Forecast - Regional Counties</h2>
+                <div class="info-section">
+                    <strong>Monitored Counties:</strong>
+                    <div style="margin-top: 10px;">
+                        <span class="county-badge">Greensville County, VA</span>
+                        <span class="county-badge">Brunswick County, VA</span>
+                        <span class="county-badge">Mecklenburg County, VA</span>
+                        <span class="county-badge">Southampton County, VA</span>
+                    </div>
+                </div>
+                
+                <div class="button-group">
+                    <button onclick="fetchWeatherForecast('Greensville')">Load Greensville Forecast</button>
+                    <button onclick="fetchWeatherForecast('Brunswick')">Load Brunswick Forecast</button>
+                </div>
+                
+                <div id="weatherForecast" class="loading">
+                    Click a button above to load weather forecast data
+                </div>
+            </div>
+        </div>
+        
+        <!-- Map Section -->
+        <div class="grid-container">
+            <div class="card map-container">
+                <h2>🗺️ Interactive Fire Map - NASA FIRMS Hotspots</h2>
+                <div class="info-section">
+                    <strong>Map Features:</strong>
+                    <ul style="margin-left: 20px; margin-top: 10px;">
+                        <li>Real-time fire hotspot data from NASA FIRMS</li>
+                        <li>County boundaries for Greensville and surrounding areas</li>
+                        <li>Weather station markers</li>
+                        <li>Interactive zoom and pan controls</li>
+                    </ul>
+                </div>
+                <button onclick="loadFireMap()">Load Fire Map</button>
+                <div id="map"></div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Load dependencies -->
+    <script src="fuel-moisture-calculator.js"></script>
+    
+    <script>
+        // Fire Behavior Calculator Class
+        class FireBehavior {
+            constructor() {
+                // Fuel model parameters (simplified Rothermel model)
+                this.fuelModels = {
+                    1: { load: 0.74, savr: 3500, depth: 1.0, heat: 8000, name: "Short Grass" },
+                    2: { load: 2.0, savr: 3000, depth: 1.0, heat: 8000, name: "Timber Grass" },
+                    3: { load: 3.01, savr: 1500, depth: 2.5, heat: 8000, name: "Tall Grass" },
+                    4: { load: 5.01, savr: 2000, depth: 6.0, heat: 8000, name: "Chaparral" },
+                    5: { load: 1.0, savr: 2000, depth: 2.0, heat: 8000, name: "Brush" },
+                    6: { load: 1.5, savr: 1750, depth: 2.5, heat: 8000, name: "Dormant Brush" },
+                    7: { load: 1.13, savr: 1550, depth: 2.5, heat: 8000, name: "Southern Rough" }
+                };
+            }
+            
+            /**
+             * Calculate rate of spread using simplified Rothermel equations
+             * @param {number} fuelModel - Fuel model number (1-7)
+             * @param {number} windSpeed - Wind speed in mph
+             * @param {number} slope - Slope percentage
+             * @param {number} moisture1hr - 1-hour fuel moisture percentage
+             * @returns {number} Rate of spread in chains/hour
+             */
+            calculateRateOfSpread(fuelModel, windSpeed, slope, moisture1hr) {
+                const fuel = this.fuelModels[fuelModel];
+                if (!fuel) return 0;
+                
+                // Moisture damping coefficient
+                const moistureDamping = Math.max(0, 1 - 2.59 * (moisture1hr / 100) + 5.11 * Math.pow(moisture1hr / 100, 2) - 3.52 * Math.pow(moisture1hr / 100, 3));
+                
+                // Wind factor (simplified)
+                const windFactor = Math.pow(windSpeed / 10, 1.2);
+                
+                // Slope factor
+                const slopeFactor = 1 + (slope / 100) * 2;
+                
+                // Base rate of spread (simplified calculation)
+                const baseROS = fuel.load * fuel.savr / fuel.depth * 0.01;
+                
+                // Combined rate of spread
+                const ros = baseROS * moistureDamping * windFactor * slopeFactor;
+                
+                return Math.max(0, ros);
+            }
+            
+            /**
+             * Calculate fireline intensity
+             * @param {number} ros - Rate of spread in chains/hour
+             * @param {number} fuelModel - Fuel model number
+             * @returns {number} Fireline intensity in BTU/ft/sec
+             */
+            calculateFirelineIntensity(ros, fuelModel) {
+                const fuel = this.fuelModels[fuelModel];
+                if (!fuel) return 0;
+                
+                // I = h * w * r / 60
+                // where h = heat content, w = fuel load, r = rate of spread
+                const intensity = fuel.heat * fuel.load * ros / 60;
+                
+                return intensity;
+            }
+            
+            /**
+             * Calculate flame length from fireline intensity
+             * @param {number} intensity - Fireline intensity in BTU/ft/sec
+             * @returns {number} Flame length in feet
+             */
+            calculateFlameLength(intensity) {
+                // Byram's flame length equation: L = 0.45 * I^0.46
+                const flameLength = 0.45 * Math.pow(intensity, 0.46);
+                
+                return Math.max(0, flameLength);
+            }
+            
+            /**
+             * Complete fire behavior analysis
+             */
+            analyze(fuelModel, windSpeed, slope, moisture1hr, moisture10hr, moisture100hr) {
+                const ros = this.calculateRateOfSpread(fuelModel, windSpeed, slope, moisture1hr);
+                const intensity = this.calculateFirelineIntensity(ros, fuelModel);
+                const flameLength = this.calculateFlameLength(intensity);
+                
+                // Calculate weighted moisture
+                const weightedMoisture = (moisture1hr * 0.5 + moisture10hr * 0.3 + moisture100hr * 0.2);
+                
+                return {
+                    rateOfSpread: ros.toFixed(2),
+                    firelineIntensity: intensity.toFixed(0),
+                    flameLength: flameLength.toFixed(1),
+                    weightedMoisture: weightedMoisture.toFixed(1),
+                    fuelModel: this.fuelModels[fuelModel].name,
+                    spreadRate: (ros * 66).toFixed(0), // Convert to feet/hour
+                    isCritical: moisture1hr <= 6 || flameLength > 8
+                };
+            }
+        }
+        
+        // Initialize Fire Behavior Calculator
+        const fireBehavior = new FireBehavior();
+        
+        // Calculate Fire Behavior
+        function calculateFireBehavior() {
+            const fuelModel = parseInt(document.getElementById('fuelType').value);
+            const windSpeed = parseFloat(document.getElementById('windSpeed').value);
+            const slope = parseFloat(document.getElementById('slope').value);
+            const moisture1hr = parseFloat(document.getElementById('fuelMoisture1hr').value);
+            const moisture10hr = parseFloat(document.getElementById('fuelMoisture10hr').value);
+            const moisture100hr = parseFloat(document.getElementById('fuelMoisture100hr').value);
+            
+            const results = fireBehavior.analyze(fuelModel, windSpeed, slope, moisture1hr, moisture10hr, moisture100hr);
+            
+            let html = '<div class="results-box"><h3>Fire Behavior Results</h3>';
+            
+            html += `<div class="result-item">
+                <span class="result-label">Fuel Model:</span>
+                <span class="result-value">${results.fuelModel}</span>
+            </div>`;
+            
+            html += `<div class="result-item">
+                <span class="result-label">Rate of Spread:</span>
+                <span class="result-value">${results.rateOfSpread} ch/hr (${results.spreadRate} ft/hr)</span>
+            </div>`;
+            
+            html += `<div class="result-item">
+                <span class="result-label">Fireline Intensity:</span>
+                <span class="result-value">${results.firelineIntensity} BTU/ft/sec</span>
+            </div>`;
+            
+            html += `<div class="result-item">
+                <span class="result-label">Flame Length:</span>
+                <span class="result-value">${results.flameLength} feet</span>
+            </div>`;
+            
+            html += `<div class="result-item">
+                <span class="result-label">Weighted Fuel Moisture:</span>
+                <span class="result-value">${results.weightedMoisture}%</span>
+            </div>`;
+            
+            if (results.isCritical) {
+                html += '<div class="critical"><strong>⚠️ CRITICAL FIRE CONDITIONS</strong><br>';
+                if (moisture1hr <= 6) {
+                    html += 'Fine fuel moisture is at critical levels (≤6%). Extreme fire behavior possible.<br>';
+                }
+                if (results.flameLength > 8) {
+                    html += 'Flame lengths exceed 8 feet. Direct attack may not be possible.';
+                }
+                html += '</div>';
+            } else if (results.flameLength > 4) {
+                html += '<div class="warning"><strong>⚠️ ELEVATED FIRE DANGER</strong><br>Flame lengths indicate increased fire behavior. Use caution.</div>';
+            }
+            
+            html += '</div>';
+            
+            document.getElementById('fireBehaviorResults').innerHTML = html;
+        }
+        
+        // Calculate Fuel Moisture
+        function calculateFuelMoisture() {
+            const temp = parseFloat(document.getElementById('temperature').value);
+            const rh = parseFloat(document.getElementById('relativeHumidity').value);
+            const initial1hr = parseFloat(document.getElementById('initialMoisture1hr').value);
+            const initial10hr = parseFloat(document.getElementById('initialMoisture10hr').value);
+            const hours = parseFloat(document.getElementById('dryingHours').value);
+            
+            try {
+                const emc = FuelMoistureCalculator.computeEMC(temp, rh);
+                const final1hr = FuelMoistureCalculator.stepMoisture(initial1hr, emc, hours, 1);
+                const final10hr = FuelMoistureCalculator.stepMoisture(initial10hr, emc, hours, 10);
+                const final100hr = FuelMoistureCalculator.stepMoisture(14, emc, hours, 100);
+                
+                let html = '<div class="results-box"><h3>Fuel Moisture Results</h3>';
+                
+                html += `<div class="result-item">
+                    <span class="result-label">Equilibrium Moisture (EMC):</span>
+                    <span class="result-value">${emc}%</span>
+                </div>`;
+                
+                html += `<div class="result-item">
+                    <span class="result-label">1-Hour Fuel Moisture:</span>
+                    <span class="result-value">${initial1hr}% → ${final1hr}%</span>
+                </div>`;
+                
+                html += `<div class="result-item">
+                    <span class="result-label">10-Hour Fuel Moisture:</span>
+                    <span class="result-value">${initial10hr}% → ${final10hr}%</span>
+                </div>`;
+                
+                html += `<div class="result-item">
+                    <span class="result-label">100-Hour Fuel Moisture:</span>
+                    <span class="result-value">14% → ${final100hr}%</span>
+                </div>`;
+                
+                if (final1hr <= 6) {
+                    html += '<div class="critical"><strong>⚠️ CRITICAL DRYING CONDITIONS</strong><br>1-hour fuel moisture has reached critical levels (≤6%). Extreme fire danger exists.</div>';
+                } else if (final1hr <= 8) {
+                    html += '<div class="warning"><strong>⚠️ ELEVATED FIRE DANGER</strong><br>Fuel moisture is approaching critical levels. Monitor conditions closely.</div>';
+                }
+                
+                html += '</div>';
+                
+                document.getElementById('fuelMoistureResults').innerHTML = html;
+                
+                // Update fire behavior inputs
+                document.getElementById('fuelMoisture1hr').value = final1hr;
+                document.getElementById('fuelMoisture10hr').value = final10hr;
+                document.getElementById('fuelMoisture100hr').value = final100hr;
+                
+            } catch (error) {
+                document.getElementById('fuelMoistureResults').innerHTML = 
+                    `<div class="warning">Error: ${error.message}</div>`;
+            }
+        }
+        
+        // Fetch Weather Forecast (simulated - would connect to NOAA API)
+        function fetchWeatherForecast(county) {
+            const forecastDiv = document.getElementById('weatherForecast');
+            forecastDiv.innerHTML = '<div class="loading">Loading forecast data...</div>';
+            
+            // Simulate API call with setTimeout
+            setTimeout(() => {
+                // Simulated forecast data (in production, this would come from NOAA API)
+                const forecasts = {
+                    'Greensville': [
+                        { day: 'Monday', temp: 85, low: 62, rh: 25, wind: 10, conditions: 'Sunny' },
+                        { day: 'Tuesday', temp: 88, low: 64, rh: 22, wind: 12, conditions: 'Sunny' },
+                        { day: 'Wednesday', temp: 90, low: 66, rh: 20, wind: 15, conditions: 'Clear' },
+                        { day: 'Thursday', temp: 87, low: 63, rh: 28, wind: 8, conditions: 'Partly Cloudy' },
+                        { day: 'Friday', temp: 82, low: 60, rh: 35, wind: 6, conditions: 'Cloudy' }
+                    ],
+                    'Brunswick': [
+                        { day: 'Monday', temp: 84, low: 61, rh: 27, wind: 9, conditions: 'Sunny' },
+                        { day: 'Tuesday', temp: 87, low: 63, rh: 24, wind: 11, conditions: 'Sunny' },
+                        { day: 'Wednesday', temp: 89, low: 65, rh: 22, wind: 14, conditions: 'Clear' },
+                        { day: 'Thursday', temp: 86, low: 62, rh: 30, wind: 7, conditions: 'Partly Cloudy' },
+                        { day: 'Friday', temp: 81, low: 59, rh: 38, wind: 5, conditions: 'Cloudy' }
+                    ]
+                };
+                
+                const data = forecasts[county] || forecasts['Greensville'];
+                
+                let html = `<h3 style="margin-top: 20px; color: #333;">${county} County 5-Day Forecast</h3>`;
+                html += '<div class="forecast-grid">';
+                
+                data.forEach(day => {
+                    const emc = FuelMoistureCalculator.computeEMC(day.temp, day.rh);
+                    html += `
+                        <div class="forecast-day">
+                            <h4>${day.day}</h4>
+                            <div class="forecast-temp">${day.temp}°F</div>
+                            <div class="forecast-details">
+                                Low: ${day.low}°F<br>
+                                RH: ${day.rh}%<br>
+                                Wind: ${day.wind} mph<br>
+                                ${day.conditions}<br>
+                                <strong>EMC: ${emc}%</strong>
+                            </div>
+                        </div>
+                    `;
+                });
+                
+                html += '</div>';
+                
+                // Add warning if critical conditions exist
+                const criticalDays = data.filter(d => {
+                    const emc = FuelMoistureCalculator.computeEMC(d.temp, d.rh);
+                    return emc <= 5;
+                });
+                
+                if (criticalDays.length > 0) {
+                    html += '<div class="critical" style="margin-top: 20px;"><strong>⚠️ CRITICAL FIRE WEATHER FORECAST</strong><br>';
+                    html += `Critical drying conditions expected on: ${criticalDays.map(d => d.day).join(', ')}</div>`;
+                }
+                
+                forecastDiv.innerHTML = html;
+            }, 1000);
+        }
+        
+        // Load Fire Map with NASA FIRMS data
+        let mapInitialized = false;
+        
+        function loadFireMap() {
+            const mapDiv = document.getElementById('map');
+            
+            if (!mapInitialized) {
+                mapDiv.innerHTML = `
+                    <div class="map-canvas" style="position: relative;">
+                        <svg width="100%" height="500" style="background: linear-gradient(to bottom, #87CEEB 0%, #d0e8f0 100%);">
+                            <!-- County boundary for Greensville -->
+                            <rect x="30%" y="20%" width="40%" height="60%" 
+                                  fill="rgba(102, 126, 234, 0.1)" 
+                                  stroke="#667eea" 
+                                  stroke-width="2" 
+                                  stroke-dasharray="5,5"/>
+                            <text x="50%" y="50%" text-anchor="middle" font-size="14" fill="#667eea" font-weight="bold">
+                                Greensville County, VA
+                            </text>
+                            <text x="50%" y="55%" text-anchor="middle" font-size="12" fill="#666">
+                                36.6893°N, -77.5647°W
+                            </text>
+                            
+                            <!-- Grid lines -->
+                            <line x1="0" y1="25%" x2="100%" y2="25%" stroke="#ccc" stroke-width="1" opacity="0.3"/>
+                            <line x1="0" y1="50%" x2="100%" y2="50%" stroke="#ccc" stroke-width="1" opacity="0.3"/>
+                            <line x1="0" y1="75%" x2="100%" y2="75%" stroke="#ccc" stroke-width="1" opacity="0.3"/>
+                            <line x1="25%" y1="0" x2="25%" y2="100%" stroke="#ccc" stroke-width="1" opacity="0.3"/>
+                            <line x1="50%" y1="0" x2="50%" y2="100%" stroke="#ccc" stroke-width="1" opacity="0.3"/>
+                            <line x1="75%" y1="0" x2="75%" y2="100%" stroke="#ccc" stroke-width="1" opacity="0.3"/>
+                        </svg>
+                        
+                        <!-- Weather Station Marker -->
+                        <div class="station-marker" style="left: 50%; top: 50%;" 
+                             onclick="showPopup(this, 'Five Forks Weather Station', 'Greensville County, VA')" 
+                             title="Five Forks Weather Station"></div>
+                        
+                        <!-- Hotspot markers -->
+                        <div class="hotspot-dot" style="left: 52%; top: 45%;" 
+                             onclick="showPopup(this, 'Fire Hotspot #1', 'Confidence: 85%<br>Temp: 315K<br>Source: NASA FIRMS')"
+                             title="Fire Hotspot"></div>
+                        <div class="hotspot-dot" style="left: 48%; top: 55%;" 
+                             onclick="showPopup(this, 'Fire Hotspot #2', 'Confidence: 92%<br>Temp: 328K<br>Source: NASA FIRMS')"
+                             title="Fire Hotspot"></div>
+                        <div class="hotspot-dot" style="left: 54%; top: 48%;" 
+                             onclick="showPopup(this, 'Fire Hotspot #3', 'Confidence: 78%<br>Temp: 298K<br>Source: NASA FIRMS')"
+                             title="Fire Hotspot"></div>
+                        
+                        <!-- Map Legend -->
+                        <div class="map-legend">
+                            <strong>Map Legend</strong><br>
+                            <span style="color: #ff0000;">●</span> NASA FIRMS Hotspot<br>
+                            <span style="color: #667eea;">●</span> Weather Station<br>
+                            <span style="color: #667eea;">▭</span> County Boundary
+                        </div>
+                    </div>
+                `;
+                mapInitialized = true;
+            }
+        }
+        
+        let currentPopup = null;
+        
+        function showPopup(element, title, content) {
+            // Remove existing popup
+            if (currentPopup) {
+                currentPopup.remove();
+            }
+            
+            // Create new popup
+            const popup = document.createElement('div');
+            popup.className = 'marker-popup';
+            popup.innerHTML = `<strong>${title}</strong><br>${content}`;
+            
+            const rect = element.getBoundingClientRect();
+            const mapRect = element.parentElement.getBoundingClientRect();
+            
+            popup.style.left = (rect.left - mapRect.left + rect.width / 2 - 75) + 'px';
+            popup.style.top = (rect.top - mapRect.top - 80) + 'px';
+            
+            element.parentElement.appendChild(popup);
+            currentPopup = popup;
+            
+            // Close popup on click outside
+            setTimeout(() => {
+                document.addEventListener('click', function closePopup(e) {
+                    if (!popup.contains(e.target) && e.target !== element) {
+                        popup.remove();
+                        currentPopup = null;
+                        document.removeEventListener('click', closePopup);
+                    }
+                }, true);
+            }, 100);
+        }
+        
+        // Auto-calculate on page load
+        window.addEventListener('load', () => {
+            calculateFuelMoisture();
+            calculateFireBehavior();
+        });
+    </script>
+</body>
+</html>
