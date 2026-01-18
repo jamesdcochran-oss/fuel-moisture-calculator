@@ -118,7 +118,7 @@
       }
       
       const emc = computeEMC(day.temp, day.rh);
-      const hours = day.hours || 12;
+      const hours = day.hours !== undefined ? day.hours : 12;
       const m1 = stepMoisture(prev1, emc, hours, 1);
       const m10 = stepMoisture(prev10, emc, hours, 10);
 
@@ -126,7 +126,7 @@
         day: day.label || (`Day ${i + 1}`),
         temp: day.temp,
         rh: day.rh,
-        wind: day.wind || 0,
+        wind: day.wind !== undefined ? day.wind : 0,
         hours: hours,
         moisture1Hr: m1,
         moisture10Hr: m10
