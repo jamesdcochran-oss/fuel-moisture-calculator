@@ -1,0 +1,38 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Fuel Moisture Calculator</title>
+    <script src="fuel-moisture-calculator.js"></script>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 20px;
+        }
+        label, button {
+            margin: 10px 0;
+            display: block;
+        }
+    </style>
+</head>
+<body>
+    <h1>Fuel Moisture Calculator</h1>
+    <div>
+        <label for="inputValue">Enter Input Value:</label>
+        <input type="number" id="inputValue" placeholder="e.g., 1.5">
+        <button id="calculateButton">Calculate</button>
+    </div>
+    <div>
+        <h2>Output:</h2>
+        <p id="outputValue"></p>
+    </div>
+    <script>
+        document.getElementById('calculateButton').addEventListener('click', function() {
+            const inputValue = document.getElementById('inputValue').value;
+            const result = fuelMoistureCalculator(inputValue); // Assuming the function is named fuelMoistureCalculator
+            document.getElementById('outputValue').innerText = result;
+        });
+    </script>
+</body>
+</html>
