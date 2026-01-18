@@ -26,23 +26,6 @@ function assertEquals(actual, expected, message, tolerance = 0.1) {
   assert(passed, `${message} (expected: ${expected}, got: ${actual})`);
 }
 
-function assertThrows(fn, expectedError, message) {
-  testCount++;
-  try {
-    fn();
-    failCount++;
-    console.error(`✗ ${message} (expected to throw ${expectedError.name})`);
-  } catch (error) {
-    if (error instanceof expectedError) {
-      passCount++;
-      console.log(`✓ ${message}`);
-    } else {
-      failCount++;
-      console.error(`✗ ${message} (expected ${expectedError.name}, got ${error.constructor.name})`);
-    }
-  }
-}
-
 console.log('=== Comprehensive Fuel Moisture Calculator Test Suite ===\n');
 
 // ========== computeEMC Edge Cases ==========
