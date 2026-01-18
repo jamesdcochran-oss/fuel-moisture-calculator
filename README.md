@@ -175,10 +175,13 @@ Tests cover:
 ## Examples
 
 Complete working examples in the `examples/` directory:
+- `five-forks-fire-weather-dashboard.html` - **Complete Fire Weather Dashboard** with fire behavior analysis, fuel moisture modeling, weather forecasts, and NASA FIRMS fire map
 - `browser-example.html` - Interactive web interface
 - `node-example.js` - Node.js usage
 - `deno-example.js` - Deno usage
 - `bun-example.js` - Bun usage
+
+See the [examples README](examples/README.md) for detailed documentation on the Fire Weather Dashboard.
 
 ### Multi-Day Forecast Example
 
