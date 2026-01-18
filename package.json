@@ -4,7 +4,9 @@
   "description": "Robust JavaScript library for calculating fuel moisture content using EMC and time-lag models for fire weather forecasting",
   "main": "fuel-moisture-calculator.js",
   "scripts": {
-    "test": "node test/test.js",
+    "test": "node test/test.js && node test/comprehensive-test.js",
+    "test:basic": "node test/test.js",
+    "test:comprehensive": "node test/comprehensive-test.js",
     "test:node": "node test/test.js",
     "test:deno": "deno run --allow-read test/test.js",
     "test:bun": "bun test/test.js"

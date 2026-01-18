@@ -12,7 +12,7 @@ A robust, standalone JavaScript library for calculating fuel moisture content us
 - **Universal Compatibility**: Works in browser, Node.js, Deno, and Bun
 - **Zero Dependencies**: Pure JavaScript with no external dependencies
 - **Defensive Programming**: Guards against division by zero, invalid ranges, and missing DOM elements
-- **Comprehensive Testing**: 51 automated tests covering all functionality
+- **Comprehensive Testing**: 116 automated tests covering all functionality and edge cases
 
 ## Quick Start
 
@@ -158,7 +158,7 @@ The model identifies critical fire weather conditions when:
 
 ## Test Suite
 
-Run the comprehensive test suite (51 tests):
+Run the comprehensive test suite (116 tests):
 
 ```bash
 npm test
@@ -166,11 +166,16 @@ npm test
 
 Tests cover:
 - EMC calculation validation
-- Time-lag drying model verification
+- Time-lag drying model verification (1-hr, 10-hr, 100-hr, 1000-hr fuels)
 - Multi-day forecast processing
 - Input validation and edge cases
 - Critical condition detection
 - Temperature conversions
+- Extreme values and boundary conditions
+- Division by zero protection
+- Wetting and drying scenarios
+
+See [test/README.md](test/README.md) for detailed test documentation.
 
 ## Examples
 
