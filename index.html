@@ -1,20 +1,48 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Fuel Moisture Calculator</title>
-    <script>
-        function calculateMoisture() {
-            // Example code to accept user input and process it
-            const moistureInput = document.getElementById('moistureInput').value;
-            const result = FuelMoistureCalculator.calculate(moistureInput);
-            document.getElementById('result').innerText = 'Calculated Moisture: ' + result;
+    <script src="fuel-moisture-calculator.js"></script>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 20px;
         }
-    </script>
+        label, button {
+            margin: 10px 0;
+            display: block;
+        }
+    </style>
 </head>
 <body>
     <h1>Fuel Moisture Calculator</h1>
-    <input type="text" id="moistureInput" placeholder="Enter moisture value">
-    <button onclick="calculateMoisture()">Calculate</button>
-    <p id="result"></p>
+    <form id="fuel-form">
+        <label for="temp">Temperature (°F):</label>
+        <input type="number" id="temp" required>
+
+        <label for="rh">Relative Humidity (%):</label>
+        <input type="number" id="rh" required>
+
+        <button type="button" id="computeEmcButton">Compute EMC</button>
+    </form>
+
+    <h2>Output:</h2>
+    <p id="output"></p>
+
+    <script>
+        document.getElementById("computeEmcButton").addEventListener("click", () => {
+            const temp = parseFloat(document.getElementById("temp").value);
+            const rh = parseFloat(document.getElementById("rh").value);
+
+            try {
+                const emc = FuelMoistureCalculator.computeEMC(temp, rh);
+                document.getElementById("output").textContent = `Equilibrium Moisture Content: ${emc}%`;
+            } catch (error) {
+                document.getElementById("output").textContent = `Error: ${error.message}`;
+            }
+        });
+    </script>
 </body>
 </html>
