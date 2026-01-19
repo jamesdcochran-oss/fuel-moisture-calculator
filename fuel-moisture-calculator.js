@@ -10,9 +10,7 @@ const calculateMoisture = (input) => {
     if (!input || typeof input.temperature !== 'number' || typeof input.humidity !== 'number') {
         throw new Error('Invalid input for calculateMoisture');
     }
-    // Example logic: moisture decreases with temperature, increases with humidity
-    return (input.humidity - input.temperature * 0.1).toFixed(2); // Sample calculation
+    return (input.humidity - input.temperature * 0.1).toFixed(2);
 };
 
-// Ensure the function is exported correctly
 module.exports = { calculateMoisture };
