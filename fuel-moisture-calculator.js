@@ -13,4 +13,10 @@ const calculateMoisture = (input) => {
     return (input.humidity - input.temperature * 0.1).toFixed(2);
 };
 
-module.exports = { calculateMoisture };
+// Ensure other utility functions are tested as well.
+const someOtherFunction = () => {
+    return true;
+};
+
+// Export both functions for the test suite
+module.exports = { calculateMoisture, someOtherFunction };
