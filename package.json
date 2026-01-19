@@ -1,6 +1,6 @@
 {
   "name": "fuel-moisture-calculator",
-  "version": "1.0.0",
+  "version": "1.1.0",
   "description": "Robust JavaScript library for calculating fuel moisture content using EMC and time-lag models for fire weather forecasting",
   "main": "fuel-moisture-calculator.js",
   "scripts": {
@@ -24,7 +24,10 @@
     "time-lag model",
     "fire forecasting",
     "equilibrium moisture content",
-    "fire behavior"
+    "fire behavior",
+    "drying trend",
+    "weather prediction",
+    "fuel moisture prediction"
   ],
   "author": "James D. Cochran",
   "license": "MIT",
