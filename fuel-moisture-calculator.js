@@ -1,4 +1,40 @@
+// EMC Equation Constants (Nelson's equation for fine dead fuels)
+// These coefficients are based on empirical research for fuel moisture equilibrium
+const EMC_LOW_RH_COEFFICIENTS = {
+    INTERCEPT: 0.03229,
+    RH_FACTOR: 0.281073,
+    TEMP_RH_FACTOR: 0.000578
+};
+
+const EMC_MEDIUM_RH_COEFFICIENTS = {
+    INTERCEPT: 2.22749,
+    RH_FACTOR: 0.160107,
+    TEMP_FACTOR: 0.014784
+};
+
+const EMC_HIGH_RH_COEFFICIENTS = {
+    INTERCEPT: 21.0606,
+    RH_SQUARED_FACTOR: 0.005565,
+    TEMP_RH_FACTOR: 0.00035,
+    RH_FACTOR: 0.483199
+};
+
+// EMC bounds - typical range for fine dead fuels is 0-30%
+// Values outside this range are typically measurement errors or extreme conditions
+const EMC_MIN_PERCENT = 0;
+const EMC_MAX_PERCENT = 30;
+
+// Critical moisture threshold for fire danger (based on NFDRS standards)
+const CRITICAL_MOISTURE_THRESHOLD = 6;
+
 /**
+ * Computes moisture content based on temperature and relative humidity.
+ * @param {Object} input - The input object containing temperature and humidity.
+ * @param {number} input.temperature - The temperature in Fahrenheit.
+ * @param {number} input.humidity - The relative humidity in percentage.
+ * @returns {number} - The calculated moisture content.
+ * @throws {Error} - If input is invalid.
+ * @note BREAKING CHANGE (v2.0.0): Returns number instead of string for better arithmetic operations
  * Fuel Moisture Calculator
  * 
  * A comprehensive library for calculating fuel moisture content using EMC and time-lag models
@@ -221,175 +257,233 @@ function simulateDrying(params) {
       moisture10hr: timeSeries[timeSeries.length - 1].moisture10hr,
       moisture100hr: timeSeries[timeSeries.length - 1].moisture100hr
     }
-  };
-}
+    return parseFloat((input.humidity - input.temperature * 0.1).toFixed(2));
+};
 
 /**
- * Analyzes drying patterns and identifies critical periods.
- * Provides insights on drying rates, critical thresholds, and recovery times.
- * 
- * @param {Array<Object>} moistureData - Time series moisture data
- * @param {number} moistureData[].hour - Hour of measurement
- * @param {number} moistureData[].moisture1hr - 1-hour fuel moisture
- * @param {number} moistureData[].moisture10hr - 10-hour fuel moisture
- * @param {number} [criticalThreshold=6] - Critical moisture threshold (%)
- * @returns {Object} Analysis results with patterns and critical periods
+ * Computes Equilibrium Moisture Content (EMC) based on temperature and relative humidity.
+ * Uses Nelson's EMC equation for fine dead fuels.
+ * @param {number} temp - Temperature in Fahrenheit
+ * @param {number} rh - Relative humidity in percentage (0-100)
+ * @returns {number} - EMC in percentage
  */
-function analyzeDryingPattern(moistureData, criticalThreshold = 6) {
-  if (!Array.isArray(moistureData) || moistureData.length === 0) {
-    throw new TypeError('Moisture data must be a non-empty array');
-  }
-  
-  const threshold = Number(criticalThreshold);
-  if (!isFinite(threshold)) {
-    throw new TypeError('Critical threshold must be a finite number');
-  }
-  
-  const analysis = {
-    criticalPeriods: [],
-    dryingRates: {
-      fuel1hr: { avg: 0, max: 0, min: 0 },
-      fuel10hr: { avg: 0, max: 0, min: 0 }
-    },
-    thresholdCrossings: {
-      fuel1hr: null,
-      fuel10hr: null
+const computeEMC = (temp, rh) => {
+    if (typeof temp !== 'number' || typeof rh !== 'number') {
+        throw new Error('Invalid input: temperature and humidity must be numbers');
     }
-  };
-  
-  // Calculate drying rates
-  const rates1hr = [];
-  const rates10hr = [];
-  
-  for (let i = 1; i < moistureData.length; i++) {
-    const dt = moistureData[i].hour - moistureData[i - 1].hour;
-    if (dt > 0) {
-      const rate1hr = (moistureData[i].moisture1hr - moistureData[i - 1].moisture1hr) / dt;
-      const rate10hr = (moistureData[i].moisture10hr - moistureData[i - 1].moisture10hr) / dt;
-      rates1hr.push(rate1hr);
-      rates10hr.push(rate10hr);
-    }
-  }
-  
-  // Compute rate statistics
-  if (rates1hr.length > 0) {
-    analysis.dryingRates.fuel1hr.avg = parseFloat((rates1hr.reduce((a, b) => a + b, 0) / rates1hr.length).toFixed(3));
-    analysis.dryingRates.fuel1hr.max = parseFloat(Math.max(...rates1hr).toFixed(3));
-    analysis.dryingRates.fuel1hr.min = parseFloat(Math.min(...rates1hr).toFixed(3));
-  }
-  
-  if (rates10hr.length > 0) {
-    analysis.dryingRates.fuel10hr.avg = parseFloat((rates10hr.reduce((a, b) => a + b, 0) / rates10hr.length).toFixed(3));
-    analysis.dryingRates.fuel10hr.max = parseFloat(Math.max(...rates10hr).toFixed(3));
-    analysis.dryingRates.fuel10hr.min = parseFloat(Math.min(...rates10hr).toFixed(3));
-  }
-  
-  // Find threshold crossings
-  for (let i = 0; i < moistureData.length; i++) {
-    if (analysis.thresholdCrossings.fuel1hr === null && moistureData[i].moisture1hr <= threshold) {
-      analysis.thresholdCrossings.fuel1hr = moistureData[i].hour;
-    }
-    if (analysis.thresholdCrossings.fuel10hr === null && moistureData[i].moisture10hr <= threshold) {
-      analysis.thresholdCrossings.fuel10hr = moistureData[i].hour;
-    }
-  }
-  
-  // Identify critical periods
-  let inCriticalPeriod = false;
-  let periodStart = null;
-  
-  for (let i = 0; i < moistureData.length; i++) {
-    const isCritical = moistureData[i].moisture1hr <= threshold;
     
-    if (isCritical && !inCriticalPeriod) {
-      inCriticalPeriod = true;
-      periodStart = moistureData[i].hour;
-    } else if (!isCritical && inCriticalPeriod) {
-      analysis.criticalPeriods.push({
-        start: periodStart,
-        end: moistureData[i - 1].hour,
-        duration: moistureData[i - 1].hour - periodStart
-      });
-      inCriticalPeriod = false;
+    // Nelson's EMC equation for fine dead fuels
+    // Separate equations for humidity ranges based on empirical research
+    let emc;
+    
+    if (rh < 10) {
+        // Low humidity: linear approximation
+        emc = EMC_LOW_RH_COEFFICIENTS.INTERCEPT + 
+              EMC_LOW_RH_COEFFICIENTS.RH_FACTOR * rh - 
+              EMC_LOW_RH_COEFFICIENTS.TEMP_RH_FACTOR * rh * temp;
+    } else if (rh < 50) {
+        // Medium humidity: moderate temperature sensitivity
+        emc = EMC_MEDIUM_RH_COEFFICIENTS.INTERCEPT + 
+              EMC_MEDIUM_RH_COEFFICIENTS.RH_FACTOR * rh - 
+              EMC_MEDIUM_RH_COEFFICIENTS.TEMP_FACTOR * temp;
+    } else {
+        // High humidity: quadratic relationship with RH
+        emc = EMC_HIGH_RH_COEFFICIENTS.INTERCEPT + 
+              EMC_HIGH_RH_COEFFICIENTS.RH_SQUARED_FACTOR * rh * rh - 
+              EMC_HIGH_RH_COEFFICIENTS.TEMP_RH_FACTOR * rh * temp - 
+              EMC_HIGH_RH_COEFFICIENTS.RH_FACTOR * rh;
     }
-  }
-  
-  // Close any open critical period
-  if (inCriticalPeriod) {
-    analysis.criticalPeriods.push({
-      start: periodStart,
-      end: moistureData[moistureData.length - 1].hour,
-      duration: moistureData[moistureData.length - 1].hour - periodStart
-    });
-  }
-  
-  return analysis;
-}
+    
+    // Ensure EMC is within reasonable bounds for fine dead fuels
+    return Math.max(EMC_MIN_PERCENT, Math.min(EMC_MAX_PERCENT, parseFloat(emc.toFixed(2))));
+};
 
 /**
- * Converts temperature from Celsius to Fahrenheit.
- * 
+ * Updates fuel moisture content using time-lag model.
+ * Uses exponential approach to equilibrium moisture content.
+ * @param {number} currentMoisture - Current fuel moisture percentage
+ * @param {number} emc - Equilibrium moisture content percentage
+ * @param {number} hours - Time period in hours
+ * @param {number} timeLag - Time lag constant in hours (1, 10, or 100)
+ * @returns {number} - New moisture content percentage
+ */
+const stepMoisture = (currentMoisture, emc, hours, timeLag) => {
+    if (typeof currentMoisture !== 'number' || typeof emc !== 'number' || 
+        typeof hours !== 'number' || typeof timeLag !== 'number') {
+        throw new Error('Invalid input: all parameters must be numbers');
+    }
+    
+    if (timeLag <= 0) {
+        throw new Error('Time lag must be greater than 0');
+    }
+    
+    // Exponential approach: M(t) = EMC + (M0 - EMC) * exp(-t/τ)
+    // where τ is the time lag constant
+    const newMoisture = emc + (currentMoisture - emc) * Math.exp(-hours / timeLag);
+    
+    return parseFloat(newMoisture.toFixed(2));
+};
+
+/**
+ * Simulates drying trends for multiple fuel classes over time.
+ * @param {Object} dryingInputs - Input parameters for drying simulation
+ * @param {number[]} dryingInputs.tempSeries - Array of temperatures in Fahrenheit
+ * @param {number[]} dryingInputs.rhSeries - Array of relative humidity percentages
+ * @param {Object} dryingInputs.initialState - Initial moisture states
+ * @param {number} dryingInputs.initialState.m1 - Initial 1-hour fuel moisture
+ * @param {number} dryingInputs.initialState.m10 - Initial 10-hour fuel moisture
+ * @param {number} dryingInputs.initialState.m100 - Initial 100-hour fuel moisture
+ * @param {number} dryingInputs.timeStep - Time step in hours (default: 1.0)
+ * @returns {Object[]} - Array of moisture trends for each time step
+ */
+const simulateDrying = (dryingInputs) => {
+    if (!dryingInputs || !dryingInputs.tempSeries || !dryingInputs.rhSeries || !dryingInputs.initialState) {
+        throw new Error('Invalid input: dryingInputs must contain tempSeries, rhSeries, and initialState');
+    }
+    
+    const { tempSeries, rhSeries, initialState, timeStep = 1.0 } = dryingInputs;
+    
+    if (tempSeries.length !== rhSeries.length) {
+        throw new Error('Temperature and humidity series must have the same length');
+    }
+    
+    const results = [];
+    let m1 = initialState.m1 || 0;
+    let m10 = initialState.m10 || 0;
+    let m100 = initialState.m100 || 0;
+    
+    for (let i = 0; i < tempSeries.length; i++) {
+        const temp = tempSeries[i];
+        const rh = rhSeries[i];
+        const emc = computeEMC(temp, rh);
+        
+        // Update each fuel class
+        m1 = stepMoisture(m1, emc, timeStep, 1);
+        m10 = stepMoisture(m10, emc, timeStep, 10);
+        m100 = stepMoisture(m100, emc, timeStep, 100);
+        
+        results.push({
+            step: i + 1,
+            temp,
+            rh,
+            emc,
+            m1,
+            m10,
+            m100
+        });
+    }
+    
+    return results;
+};
+
+/**
+ * Runs a multi-day forecast model for fuel moisture.
+ * @param {number} initial1hr - Initial 1-hour fuel moisture percentage
+ * @param {number} initial10hr - Initial 10-hour fuel moisture percentage
+ * @param {Array} forecast - Array of forecast periods
+ * @param {number} forecast[].temp - Temperature in Fahrenheit
+ * @param {number} forecast[].rh - Relative humidity percentage
+ * @param {number} forecast[].hours - Duration of period in hours
+ * @param {string} [forecast[].label] - Optional label for the period
+ * @returns {Object} - Forecast results with daily moisture values
+ */
+const runModel = (initial1hr, initial10hr, forecast) => {
+    if (typeof initial1hr !== 'number' || typeof initial10hr !== 'number') {
+        throw new Error('Invalid input: initial moisture values must be numbers');
+    }
+    
+    if (!Array.isArray(forecast) || forecast.length === 0) {
+        throw new Error('Invalid input: forecast must be a non-empty array');
+    }
+    
+    const dailyResults = [];
+    let moisture1Hr = initial1hr;
+    let moisture10Hr = initial10hr;
+    let firstCritical1HrDay = null;
+    
+    for (let i = 0; i < forecast.length; i++) {
+        const period = forecast[i];
+        const { temp, rh, hours, label, wind } = period;
+        
+        if (typeof temp !== 'number' || typeof rh !== 'number' || typeof hours !== 'number') {
+            throw new Error(`Invalid forecast data at index ${i}`);
+        }
+        
+        const emc = computeEMC(temp, rh);
+        
+        // Update moisture for each fuel class
+        moisture1Hr = stepMoisture(moisture1Hr, emc, hours, 1);
+        moisture10Hr = stepMoisture(moisture10Hr, emc, hours, 10);
+        
+        // Check for critical drying (based on NFDRS standards)
+        if (moisture1Hr <= CRITICAL_MOISTURE_THRESHOLD && firstCritical1HrDay === null) {
+            firstCritical1HrDay = label || `Period ${i + 1}`;
+        }
+        
+        const result = {
+            day: label || `Period ${i + 1}`,
+            temp,
+            rh,
+            moisture1Hr,
+            moisture10Hr
+        };
+        
+        // Include wind if provided
+        if (wind !== undefined) {
+            result.wind = wind;
+        }
+        
+        dailyResults.push(result);
+    }
+    
+    return {
+        initial1hr,
+        initial10hr,
+        dailyResults,
+        summary: {
+            firstCritical1HrDay,
+            finalMoisture1Hr: moisture1Hr,
+            finalMoisture10Hr: moisture10Hr
+        }
+    };
+};
+
+/**
+ * Converts Celsius to Fahrenheit.
  * @param {number} celsius - Temperature in Celsius
- * @returns {number} Temperature in Fahrenheit
- * @throws {TypeError} If input is not a finite number
+ * @returns {number} - Temperature in Fahrenheit
  */
-function celsiusToFahrenheit(celsius) {
-  const C = Number(celsius);
-  if (!isFinite(C)) {
-    throw new TypeError('Celsius must be a finite number');
-  }
-  return (C * 9 / 5) + 32;
-}
+const celsiusToFahrenheit = (celsius) => {
+    if (typeof celsius !== 'number') {
+        throw new Error('Invalid input: temperature must be a number');
+    }
+    return (celsius * 9/5) + 32;
+};
 
 /**
- * Converts temperature from Fahrenheit to Celsius.
- * 
+ * Converts Fahrenheit to Celsius.
  * @param {number} fahrenheit - Temperature in Fahrenheit
- * @returns {number} Temperature in Celsius
- * @throws {TypeError} If input is not a finite number
+ * @returns {number} - Temperature in Celsius
  */
-function fahrenheitToCelsius(fahrenheit) {
-  const F = Number(fahrenheit);
-  if (!isFinite(F)) {
-    throw new TypeError('Fahrenheit must be a finite number');
-  }
-  return (F - 32) * 5 / 9;
-}
-
-// Legacy function for backward compatibility
-const calculateMoisture = (input) => {
-  if (!input || typeof input.temperature !== 'number' || typeof input.humidity !== 'number') {
-    throw new Error('Invalid input for calculateMoisture');
-  }
-  return (input.humidity - input.temperature * 0.1).toFixed(2);
+const fahrenheitToCelsius = (fahrenheit) => {
+    if (typeof fahrenheit !== 'number') {
+        throw new Error('Invalid input: temperature must be a number');
+    }
+    return (fahrenheit - 32) * 5/9;
 };
 
 const someOtherFunction = () => {
   return true;
 };
 
-// Universal Module Definition (UMD) pattern for cross-platform support
-(function (root, factory) {
-  if (typeof module === 'object' && module.exports) {
-    // Node.js/CommonJS
-    module.exports = factory();
-  } else if (typeof define === 'function' && define.amd) {
-    // AMD
-    define([], factory);
-  } else {
-    // Browser globals
-    root.FuelMoistureCalculator = factory();
-  }
-}(typeof self !== 'undefined' ? self : this, function () {
-  return {
+// Export all functions for the test suite
+module.exports = { 
+    calculateMoisture, 
     computeEMC,
     stepMoisture,
-    runModel,
     simulateDrying,
-    analyzeDryingPattern,
+    runModel,
     celsiusToFahrenheit,
     fahrenheitToCelsius,
-    calculateMoisture,
-    someOtherFunction
-  };
-}));
+    someOtherFunction 
+};
