@@ -15,6 +15,7 @@ describe('Fuel Moisture Calculator Tests', () => {
         const input = { temperature: 80, humidity: 40 };
         const output = calculateMoisture(input);
         expect(output).toBe(32);
+        expect(parseFloat(output)).toBeGreaterThan(0);
     });
 
     test('Should throw an error for invalid inputs', () => {
