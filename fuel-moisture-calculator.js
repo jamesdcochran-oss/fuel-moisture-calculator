@@ -1,3 +1,32 @@
+// EMC Equation Constants (Nelson's equation for fine dead fuels)
+// These coefficients are based on empirical research for fuel moisture equilibrium
+const EMC_LOW_RH_COEFFICIENTS = {
+    INTERCEPT: 0.03229,
+    RH_FACTOR: 0.281073,
+    TEMP_RH_FACTOR: 0.000578
+};
+
+const EMC_MEDIUM_RH_COEFFICIENTS = {
+    INTERCEPT: 2.22749,
+    RH_FACTOR: 0.160107,
+    TEMP_FACTOR: 0.014784
+};
+
+const EMC_HIGH_RH_COEFFICIENTS = {
+    INTERCEPT: 21.0606,
+    RH_SQUARED_FACTOR: 0.005565,
+    TEMP_RH_FACTOR: 0.00035,
+    RH_FACTOR: 0.483199
+};
+
+// EMC bounds - typical range for fine dead fuels is 0-30%
+// Values outside this range are typically measurement errors or extreme conditions
+const EMC_MIN_PERCENT = 0;
+const EMC_MAX_PERCENT = 30;
+
+// Critical moisture threshold for fire danger (based on NFDRS standards)
+const CRITICAL_MOISTURE_THRESHOLD = 6;
+
 /**
  * Computes moisture content based on temperature and relative humidity.
  * @param {Object} input - The input object containing temperature and humidity.
@@ -5,6 +34,7 @@
  * @param {number} input.humidity - The relative humidity in percentage.
  * @returns {number} - The calculated moisture content.
  * @throws {Error} - If input is invalid.
+ * @note BREAKING CHANGE (v2.0.0): Returns number instead of string for better arithmetic operations
  */
 const calculateMoisture = (input) => {
     if (!input || typeof input.temperature !== 'number' || typeof input.humidity !== 'number') {
@@ -26,19 +56,29 @@ const computeEMC = (temp, rh) => {
     }
     
     // Nelson's EMC equation for fine dead fuels
-    // Separate equations for humidity ranges
+    // Separate equations for humidity ranges based on empirical research
     let emc;
     
     if (rh < 10) {
-        emc = 0.03229 + 0.281073 * rh - 0.000578 * rh * temp;
+        // Low humidity: linear approximation
+        emc = EMC_LOW_RH_COEFFICIENTS.INTERCEPT + 
+              EMC_LOW_RH_COEFFICIENTS.RH_FACTOR * rh - 
+              EMC_LOW_RH_COEFFICIENTS.TEMP_RH_FACTOR * rh * temp;
     } else if (rh < 50) {
-        emc = 2.22749 + 0.160107 * rh - 0.014784 * temp;
+        // Medium humidity: moderate temperature sensitivity
+        emc = EMC_MEDIUM_RH_COEFFICIENTS.INTERCEPT + 
+              EMC_MEDIUM_RH_COEFFICIENTS.RH_FACTOR * rh - 
+              EMC_MEDIUM_RH_COEFFICIENTS.TEMP_FACTOR * temp;
     } else {
-        emc = 21.0606 + 0.005565 * rh * rh - 0.00035 * rh * temp - 0.483199 * rh;
+        // High humidity: quadratic relationship with RH
+        emc = EMC_HIGH_RH_COEFFICIENTS.INTERCEPT + 
+              EMC_HIGH_RH_COEFFICIENTS.RH_SQUARED_FACTOR * rh * rh - 
+              EMC_HIGH_RH_COEFFICIENTS.TEMP_RH_FACTOR * rh * temp - 
+              EMC_HIGH_RH_COEFFICIENTS.RH_FACTOR * rh;
     }
     
-    // Ensure EMC is within reasonable bounds (0-30%)
-    return Math.max(0, Math.min(30, parseFloat(emc.toFixed(2))));
+    // Ensure EMC is within reasonable bounds for fine dead fuels
+    return Math.max(EMC_MIN_PERCENT, Math.min(EMC_MAX_PERCENT, parseFloat(emc.toFixed(2))));
 };
 
 /**
@@ -158,8 +198,8 @@ const runModel = (initial1hr, initial10hr, forecast) => {
         moisture1Hr = stepMoisture(moisture1Hr, emc, hours, 1);
         moisture10Hr = stepMoisture(moisture10Hr, emc, hours, 10);
         
-        // Check for critical drying (≤6%)
-        if (moisture1Hr <= 6 && firstCritical1HrDay === null) {
+        // Check for critical drying (based on NFDRS standards)
+        if (moisture1Hr <= CRITICAL_MOISTURE_THRESHOLD && firstCritical1HrDay === null) {
             firstCritical1HrDay = label || `Period ${i + 1}`;
         }
         
