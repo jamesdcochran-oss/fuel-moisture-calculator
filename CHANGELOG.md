@@ -5,6 +5,44 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.1.0] - 2026-01-19
+
+### Added
+- **🆕 Drying Trend Prediction Feature** - Major new capability for forecasting fuel moisture
+  - `predictDryingTrend()` function for extended period moisture forecasting
+  - Analyzes historical weather data (7+ days) to establish baseline trends
+  - Predicts future moisture based on weather forecasts
+  - Detects critical drying periods when moisture drops below 6% (configurable)
+  - Returns comprehensive JSON structure with hourly/daily moisture values
+  - Optimized for large datasets (100+ periods)
+- **Wind Speed Support** - Optional wind data dynamically affects drying rates
+  - Wind reduces effective time lag (faster drying in higher winds)
+  - Simplified model: up to 20% faster drying at 30 mph winds
+  - Integrated into `predictDryingTrend()` function
+- **Interpolation for Missing Data** - `interpolateWeatherData()` function
+  - Linear interpolation for missing temperature values
+  - Linear interpolation for missing humidity values
+  - Handles multiple consecutive missing values
+  - Handles missing data at array boundaries
+  - Enabled by default in `predictDryingTrend()` (can be disabled)
+- Comprehensive test suite for new features (29 passing tests)
+- New example file: `examples/drying-trend-example.js`
+- Performance optimization for large datasets
+- Additional validation and error handling
+
+### Changed
+- Fixed `calculateMoisture()` to return number instead of string
+- Improved `computeEMC()` input validation to check for Infinity before clamping
+- Added Jest as dev dependency for testing
+- Added coverage directory to .gitignore
+
+### Technical Details
+- Uses exponential decay model: M(t) = Me + (M0 - Me) * e^(-t/tau)
+- Supports all fuel time lag classes (1-hour, 10-hour, 100-hour, etc.)
+- Configurable output resolution (hourly or daily)
+- Configurable critical moisture threshold
+- Maintains backward compatibility with all existing functions
+
 ## [1.0.0] - 2026-01-17
 
 ### Added
@@ -52,4 +90,5 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Results with one decimal place precision
 - Production-ready and thoroughly tested
 
+[1.1.0]: https://github.com/jamesdcochran-oss/fuel-moisture-calculator/releases/tag/v1.1.0
 [1.0.0]: https://github.com/jamesdcochran-oss/fuel-moisture-calculator/releases/tag/v1.0.0
